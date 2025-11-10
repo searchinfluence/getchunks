@@ -1080,7 +1080,7 @@
                             <div class="option-group">
                                 <label for="overlap">Context Overlap</label>
                                 <div class="slider-container">
-                                    <input type="range" id="overlap" name="overlap" min="0" max="50" value="auto" step="5">
+                                    <input type="range" id="overlap" name="overlap" min="0" max="50" value="0" step="5" data-auto="true">
                                     <span class="slider-value" id="overlap-value">Auto</span>
                                 </div>
                                 <span class="option-hint">Words of overlap between chunks (prevents context loss)</span>
@@ -1264,16 +1264,18 @@
 
             // Overlap slider handler
             overlapSlider.addEventListener('input', function() {
-                const value = this.value;
-                if (value === 'auto') {
+                const value = parseInt(this.value);
+                if (value === 0 || this.dataset.auto === 'true') {
                     overlapValue.textContent = 'Auto';
+                    this.dataset.auto = 'true';
                 } else {
                     overlapValue.textContent = `${value} words`;
+                    this.dataset.auto = 'false';
                 }
             });
 
             // Initialize overlap slider display
-            if (overlapSlider.value === 'auto') {
+            if (overlapSlider.dataset.auto === 'true') {
                 overlapValue.textContent = 'Auto';
             } else {
                 overlapValue.textContent = `${overlapSlider.value} words`;
@@ -1363,7 +1365,7 @@
 
                 // Get advanced options values
                 const chunkSize = chunkSizeSelect.value === 'auto' ? undefined : chunkSizeSelect.value;
-                const overlap = overlapSlider.value === 'auto' ? undefined : parseInt(overlapSlider.value);
+                const overlap = (overlapSlider.dataset.auto === 'true' || parseInt(overlapSlider.value) === 0) ? undefined : parseInt(overlapSlider.value);
                 const strategy = strategySelect.value;
 
                 // Build request body
