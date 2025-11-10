@@ -1,39 +1,39 @@
 {
-  "name": "@search-influence/design-system",
-  "version": "1.0.0",
-  "description": "A professional design system based on the Search Influence brand, extracted from the Web Content Chunker project",
-  "main": "search-influence-design-system.css",
-  "files": [
-    "search-influence-design-system.css",
-    "search-influence-components.html",
-    "README-design-system.md",
-    "examples/"
-  ],
+  "name": "@search-influence/web-content-chunker",
+  "version": "2.0.0",
+  "description": "Intelligent web content extraction with auto-detection, configurable chunk sizes, and context-aware overlap. Perfect for RAG systems, LLM training, and content analysis.",
+  "type": "module",
+  "main": "api/chunk.js",
   "scripts": {
     "serve": "python3 -m http.server 8080",
-    "demo": "open search-influence-components.html"
+    "demo": "open public/index.html"
   },
   "keywords": [
-    "css",
-    "design-system",
-    "ui",
-    "components",
-    "search-influence",
-    "corporate",
-    "professional",
-    "responsive"
+    "chunking",
+    "rag",
+    "llm",
+    "content-extraction",
+    "web-scraping",
+    "nlp",
+    "text-processing",
+    "search-influence"
   ],
   "author": "Search Influence",
   "license": "MIT",
-  "homepage": "https://www.searchinfluence.com",
+  "homepage": "https://getchunks.searchinfluence.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/search-influence/design-system"
+    "url": "https://github.com/willscott-v2/getchunks"
   },
   "bugs": {
-    "url": "https://github.com/search-influence/design-system/issues"
+    "url": "https://github.com/willscott-v2/getchunks/issues"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {},
-  "dependencies": {},
-  "peerDependencies": {}
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
