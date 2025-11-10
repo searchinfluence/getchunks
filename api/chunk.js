@@ -42,9 +42,13 @@ export default async function handler(req, res) {
     res.status(200).json({ success: true, data: chunks });
   } catch (error) {
     console.error('Chunking error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('URL:', url);
+    console.error('Options:', options);
     res.status(500).json({
       error: 'Failed to process URL',
-      details: error.message
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }
@@ -141,7 +145,7 @@ async function chunkUrl(url, options = {}) {
   const finalOptions = {
     chunkSize: options.chunkSize || detectedParams.chunkSize,
     strategy: options.strategy === 'auto' ? detectedParams.strategy : options.strategy,
-    overlap: options.overlap !== null ? options.overlap : detectedParams.overlap
+    overlap: (options.overlap !== null && options.overlap !== undefined) ? options.overlap : detectedParams.overlap
   };
 
   // Get target word count based on chunk size
