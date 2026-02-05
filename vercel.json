@@ -1,4 +1,5 @@
 {
+  "buildCommand": "npm run build",
   "functions": {
     "api/chunk.js": {
       "maxDuration": 30
