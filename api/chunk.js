@@ -1,324 +1,273 @@
-// Web Content Chunker API v2.0.0
-// Built by Search Influence - Last Updated: January 2025
-// Enhanced with auto-detection and advanced chunking options
+// Web Content Chunker API v3.0.0
+// Built by Search Influence
+// v3: Defuddle extraction, accurate token counts, sentence-aware splits,
+//     heading breadcrumbs, source metadata, multiple output formats.
+
 import fetch from 'node-fetch';
 import { load } from 'cheerio';
+import { parseHTML } from 'linkedom';
+import { Defuddle } from 'defuddle/node';
+import { encode as encodeO200k } from 'gpt-tokenizer/encoding/o200k_base';
+import { encode as encodeCl100k } from 'gpt-tokenizer/encoding/cl100k_base';
+import sbd from 'sbd';
+
+const ENCODERS = {
+  o200k_base: encodeO200k,
+  cl100k_base: encodeCl100k,
+};
+
+const CHUNK_SIZES = {
+  small: { min: 100, max: 200, target: 150 },
+  medium: { min: 200, max: 500, target: 350 },
+  large: { min: 500, max: 1000, target: 750 },
+};
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  const body = req.body || {};
+  const { url } = body;
 
-  const { url, mode = 'auto', chunkSize, overlap, strategy } = req.body;
+  if (!url) return res.status(400).json({ error: 'URL is required' });
+  try { new URL(url); } catch { return res.status(400).json({ error: 'Invalid URL format' }); }
 
-  if (!url) {
-    return res.status(400).json({ error: 'URL is required' });
-  }
-
-  try {
-    new URL(url);
-  } catch (error) {
-    return res.status(400).json({ error: 'Invalid URL format' });
-  }
-
-  // Parse options
   const options = {
-    mode,
-    chunkSize: chunkSize || 'medium', // small, medium, large
-    overlap: overlap !== undefined ? parseInt(overlap) : null, // null means auto
-    strategy: strategy || 'auto' // auto, heading, recursive, fixed, sentence
+    mode: body.mode || 'auto',
+    chunkSize: body.chunkSize || null,
+    overlap: body.overlap !== undefined && body.overlap !== null ? parseInt(body.overlap, 10) : null,
+    strategy: body.strategy || 'auto',
+    extract: body.extract || 'auto',
+    format: body.format || 'json',
+    tokenizer: body.tokenizer || 'o200k_base',
   };
 
   try {
-    const chunks = await chunkUrl(url, options);
-    res.status(200).json({ success: true, data: chunks });
+    const result = await chunkUrl(url, options);
+    return deliverResponse(res, result, options);
   } catch (error) {
-    console.error('Chunking error:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Chunking error:', error.message);
     console.error('URL:', url);
-    console.error('Options:', options);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to process URL',
       details: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }
 
-// Helper function to count words in text
-function countWords(text) {
-  return text.trim().split(/\s+/).filter(Boolean).length;
+function deliverResponse(res, result, options) {
+  if (options.format === 'jsonl') {
+    res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+    return res.status(200).send(toJSONL(result));
+  }
+  if (options.format === 'markdown') {
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    return res.status(200).send(toMarkdown(result));
+  }
+  if (options.format === 'langchain') {
+    return res.status(200).json({ success: true, data: toLangChain(result) });
+  }
+  return res.status(200).json({ success: true, data: result });
 }
 
-// Helper function to estimate tokens (rough approximation: 1 token ≈ 0.75 words)
-function estimateTokens(text) {
-  return Math.ceil(countWords(text) * 0.75);
-}
+// --- Main pipeline ---------------------------------------------------------
 
-// Helper function to split text into sentences
-function splitSentences(text) {
-  return text.match(/[^.!?]+[.!?]+/g) || [text];
-}
+async function chunkUrl(url, options) {
+  const warnings = [];
 
-async function chunkUrl(url, options = {}) {
   const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Web Content Chunker/2.0'
-    },
-    timeout: 30000
+    headers: { 'User-Agent': 'Web Content Chunker/3.0' },
+    timeout: 30000,
   });
-
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-  }
-
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
   const html = await res.text();
-  const $ = load(html);
 
-  function cleanText(text) {
-    return text
-      .replace(/<[^>]*>/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
+  const $raw = load(html);
+  const source = extractSourceMetadata($raw, url);
+
+  const { $, extractorUsed, defuddleMeta } = await selectExtractor(html, url, options, warnings);
+
+  if (defuddleMeta) {
+    source.title ||= defuddleMeta.title;
+    source.author ||= defuddleMeta.author;
+    source.description ||= defuddleMeta.description;
+    source.published ||= defuddleMeta.published;
+    source.image ||= defuddleMeta.image;
+    source.site ||= defuddleMeta.site;
   }
 
-  function isInNavOrFooter(element) {
-    return $(element).closest('nav, footer, header.site-header').length > 0;
+  const detected = autoDetectParameters($);
+  const finalOptions = resolveChunkingOptions(options, detected);
+
+  if (finalOptions.overlap > Math.round(CHUNK_SIZES[finalOptions.chunkSize].target * 0.25)) {
+    warnings.push('Overlap exceeds 25% of chunk size — may cause duplicate saturation in RAG retrieval.');
   }
 
-  function shouldSkip(text) {
-    const skipPatterns = [
-      /^\s*$/,
-      /^(facebook|twitter|instagram|linkedin)$/i,
-      /^\d+\s*share/i,
-      /^comments off/i,
-      /^<img/,
-      /^\s*\d+\s*$/,
-      /^(facebook twitter pinterest linkedin)$/i,
-      /privacy policy$/i,
-      /^share$/i,
-      /^tweet$/i
-    ];
-    return skipPatterns.some(pattern => pattern.test(text));
-  }
+  const bigChunks = buildChunks($, finalOptions, warnings, source.title);
+  const enhancedChunks = enhanceChunks(bigChunks, options.tokenizer);
 
-  // Auto-detection: Analyze content to determine optimal parameters
-  function autoDetectParameters($) {
-    const headings = $('h1, h2, h3, h4, h5, h6').filter((_, h) => !isInNavOrFooter(h));
-    const allText = $('body').text();
-    const totalWords = countWords(allText);
-    const headingCount = headings.length;
-
-    // Determine chunk size based on total content length
-    let chunkSize = 'medium';
-    if (totalWords < 500) {
-      chunkSize = 'small';
-    } else if (totalWords > 2000) {
-      chunkSize = 'large';
-    }
-
-    // Determine strategy based on heading density
-    let strategy = 'heading';
-    if (headingCount === 0) {
-      strategy = 'fixed';
-    } else if (headingCount > 20) {
-      strategy = 'recursive'; // Lots of headings, use recursive to merge
-    }
-
-    // Auto-calculate overlap (10% of target chunk size)
-    const targetSizes = { small: 150, medium: 350, large: 750 };
-    const overlap = Math.round(targetSizes[chunkSize] * 0.1);
-
-    return { chunkSize, strategy, overlap };
-  }
-
-  // Apply options with auto-detection fallback
-  const detectedParams = autoDetectParameters($);
-  const finalOptions = {
-    chunkSize: options.chunkSize || detectedParams.chunkSize,
-    strategy: options.strategy === 'auto' ? detectedParams.strategy : options.strategy,
-    overlap: (options.overlap !== null && options.overlap !== undefined) ? options.overlap : detectedParams.overlap
+  return {
+    big_chunks: enhancedChunks,
+    source,
+    settings: {
+      strategy: finalOptions.strategy,
+      chunk_size: finalOptions.chunkSize,
+      overlap_words: finalOptions.overlap,
+      extractor: extractorUsed,
+      tokenizer: options.tokenizer,
+      auto_detected: options.mode === 'auto' || options.strategy === 'auto',
+    },
+    summary: {
+      total_big_chunks: enhancedChunks.length,
+      total_small_chunks: enhancedChunks.reduce((s, c) => s + c.small_chunks.length, 0),
+      total_words: enhancedChunks.reduce((s, c) => s + c.metadata.total_words, 0),
+      total_tokens: enhancedChunks.reduce((s, c) => s + c.metadata.total_tokens, 0),
+    },
+    warnings,
   };
+}
 
-  // Get target word count based on chunk size
-  const chunkSizes = {
-    small: { min: 100, max: 200, target: 150 },
-    medium: { min: 200, max: 500, target: 350 },
-    large: { min: 500, max: 1000, target: 750 }
+// --- Extractor selection ---------------------------------------------------
+
+async function selectExtractor(html, url, options, warnings) {
+  if (options.extract === 'cheerio') {
+    return { $: load(html), extractorUsed: 'cheerio' };
+  }
+
+  try {
+    const { document } = parseHTML(html);
+    const result = await Defuddle(document, url, { markdown: false });
+    if (result?.content && result.content.length > 200) {
+      const $ = load(`<html><body>${result.content}</body></html>`);
+      return {
+        $,
+        extractorUsed: 'defuddle',
+        defuddleMeta: {
+          title: result.title,
+          author: result.author,
+          description: result.description,
+          published: result.published,
+          image: result.image,
+          site: result.site,
+        },
+      };
+    }
+    warnings.push('Defuddle returned empty or thin content; falling back to cheerio extraction.');
+  } catch (err) {
+    warnings.push(`Defuddle failed (${err.message}); falling back to cheerio extraction.`);
+  }
+
+  return { $: load(html), extractorUsed: 'cheerio-fallback' };
+}
+
+// --- Source metadata (JSON-LD, OG, Twitter, basic) -------------------------
+
+function extractSourceMetadata($, url) {
+  const source = { url };
+
+  source.title = cleanOneLine($('head > title').first().text()) || null;
+  source.description = $('meta[name="description"]').attr('content')?.trim() || null;
+  source.canonical = $('link[rel="canonical"]').attr('href')?.trim() || null;
+  source.language = $('html').attr('lang')?.trim() || null;
+
+  const og = {};
+  $('meta[property^="og:"]').each((_, el) => {
+    const prop = $(el).attr('property').replace(/^og:/, '');
+    const val = $(el).attr('content');
+    if (prop && val) og[prop] = val.trim();
+  });
+  if (Object.keys(og).length) source.opengraph = og;
+
+  const twitter = {};
+  $('meta[name^="twitter:"]').each((_, el) => {
+    const prop = $(el).attr('name').replace(/^twitter:/, '');
+    const val = $(el).attr('content');
+    if (prop && val) twitter[prop] = val.trim();
+  });
+  if (Object.keys(twitter).length) source.twitter = twitter;
+
+  const jsonLdNodes = [];
+  $('script[type="application/ld+json"]').each((_, el) => {
+    const raw = $(el).contents().text();
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) jsonLdNodes.push(...parsed);
+      else jsonLdNodes.push(parsed);
+    } catch {
+      // Malformed JSON-LD blocks happen in the wild — skip silently.
+    }
+  });
+  if (jsonLdNodes.length) source.jsonld = jsonLdNodes;
+
+  if (og['title']) source.title ||= og['title'];
+  if (og['description']) source.description ||= og['description'];
+  if (og['image']) source.image = og['image'];
+  if (og['site_name']) source.site = og['site_name'];
+  if (og['type']) source.type = og['type'];
+
+  const article = jsonLdNodes.find((n) => n && (n['@type'] === 'Article' || n['@type'] === 'NewsArticle' || n['@type'] === 'BlogPosting'));
+  if (article) {
+    source.title ||= article.headline;
+    source.published ||= article.datePublished;
+    source.modified ||= article.dateModified;
+    if (article.author) {
+      source.author ||= typeof article.author === 'string'
+        ? article.author
+        : Array.isArray(article.author)
+          ? article.author.map((a) => a.name || a).filter(Boolean).join(', ')
+          : article.author.name || null;
+    }
+  }
+
+  return source;
+}
+
+// --- Auto-detection --------------------------------------------------------
+
+function autoDetectParameters($) {
+  const headings = $('h1, h2, h3, h4, h5, h6').filter((_, h) => !isInNavOrFooter($, h));
+  const totalWords = countWords($('body').text());
+  const headingCount = headings.length;
+
+  let chunkSize = 'medium';
+  if (totalWords < 500) chunkSize = 'small';
+  else if (totalWords > 2000) chunkSize = 'large';
+
+  let strategy = 'heading';
+  if (headingCount === 0) strategy = 'fixed';
+  else if (headingCount > 20) strategy = 'recursive';
+
+  const overlap = Math.round(CHUNK_SIZES[chunkSize].target * 0.1);
+
+  return { chunkSize, strategy, overlap };
+}
+
+function resolveChunkingOptions(options, detected) {
+  return {
+    chunkSize: options.chunkSize || detected.chunkSize,
+    strategy: options.strategy === 'auto' ? detected.strategy : options.strategy,
+    overlap: options.overlap !== null && options.overlap !== undefined
+      ? options.overlap
+      : detected.overlap,
   };
-  const targetSize = chunkSizes[finalOptions.chunkSize];
+}
 
-  // Helper function to recursively split chunks that are too large
-  function recursiveSplit(text, maxWords) {
-    const wordCount = countWords(text);
-    if (wordCount <= maxWords) {
-      return [text];
-    }
+// --- Chunk building --------------------------------------------------------
 
-    // Try splitting by paragraphs first
-    const paragraphs = text.split(/\n\n+/);
-    if (paragraphs.length > 1) {
-      const result = [];
-      let current = '';
-      for (const para of paragraphs) {
-        const testText = current ? `${current}\n\n${para}` : para;
-        if (countWords(testText) <= maxWords) {
-          current = testText;
-        } else {
-          if (current) result.push(current);
-          current = para;
-          // If single paragraph is too large, split by sentences
-          if (countWords(current) > maxWords) {
-            result.push(...splitBySentences(current, maxWords));
-            current = '';
-          }
-        }
-      }
-      if (current) result.push(current);
-      return result;
-    }
-
-    // Fall back to sentence splitting
-    return splitBySentences(text, maxWords);
-  }
-
-  function splitBySentences(text, maxWords) {
-    const sentences = splitSentences(text);
-    const result = [];
-    let current = '';
-
-    for (const sentence of sentences) {
-      const testText = current ? `${current} ${sentence}` : sentence;
-      if (countWords(testText) <= maxWords) {
-        current = testText;
-      } else {
-        if (current) result.push(current);
-        current = sentence;
-      }
-    }
-    if (current) result.push(current);
-    return result;
-  }
-
-  // Helper function to merge small chunks
-  function mergeSmallChunks(chunks, minWords = 50) {
-    if (chunks.length <= 1) return chunks;
-
-    const result = [];
-    let i = 0;
-
-    while (i < chunks.length) {
-      let current = chunks[i];
-      let wordCount = countWords(current);
-
-      // If current chunk is too small, try merging with next
-      while (wordCount < minWords && i + 1 < chunks.length) {
-        i++;
-        current = `${current}\n\n${chunks[i]}`;
-        wordCount = countWords(current);
-      }
-
-      result.push(current);
-      i++;
-    }
-
-    return result;
-  }
-
-  // Helper function to add overlap between chunks
-  function addOverlap(chunks, overlapWords) {
-    if (overlapWords === 0 || chunks.length <= 1) return chunks;
-
-    const result = [];
-    for (let i = 0; i < chunks.length; i++) {
-      if (i === 0) {
-        result.push(chunks[i]);
-      } else {
-        // Get last N words from previous chunk
-        const prevWords = chunks[i - 1].trim().split(/\s+/);
-        const overlapText = prevWords.slice(-Math.min(overlapWords, prevWords.length)).join(' ');
-        result.push(`${overlapText} ${chunks[i]}`);
-      }
-    }
-    return result;
-  }
-
-  // Extract content pieces from DOM elements
-  function extractContentPieces(startElement, stopCondition) {
-    const contents = [];
-    let current = startElement.next();
-
-    while (current.length) {
-      if (stopCondition(current)) break;
-
-      let text = '';
-      if (current.is('p, div:not(:has(*)), section, article')) {
-        text = cleanText(current.text());
-      } else if (current.is('ul, ol')) {
-        const listItems = [];
-        current.find('li').each((_, li) => {
-          const liText = cleanText($(li).text());
-          if (liText && liText.length > 2 && !shouldSkip(liText)) {
-            listItems.push(`- ${liText}`);
-          }
-        });
-        if (listItems.length > 0) {
-          text = listItems.join('\n');
-        }
-      } else if (current.is('blockquote')) {
-        text = cleanText(current.text());
-        if (text) text = `> ${text}`;
-      } else if (current.is('pre, code')) {
-        text = cleanText(current.text());
-        if (text) text = `\`\`\`\n${text}\n\`\`\``;
-      }
-
-      if (text && text.length > 15 && !shouldSkip(text)) {
-        contents.push(text);
-      }
-
-      current = current.next();
-    }
-
-    return contents;
-  }
-
-  // Main chunking logic based on strategy
+function buildChunks($, finalOptions, warnings, docTitle) {
+  const target = CHUNK_SIZES[finalOptions.chunkSize];
   const bigChunks = [];
   const globalSeen = new Set();
 
   if (finalOptions.strategy === 'heading' || finalOptions.strategy === 'recursive') {
-    // Find all headings first
-    const headings = [];
-    $('h1, h2, h3, h4, h5, h6').each((i, heading) => {
-      const $h = $(heading);
-      if (!isInNavOrFooter(heading)) {
-        const title = cleanText($h.text());
-        if (title && title.length >= 3) {
-          headings.push({
-            element: $h,
-            title: title,
-            level: Number(heading.tagName.charAt(1)),
-            index: i
-          });
-        }
-      }
-    });
+    const headings = collectHeadings($, docTitle);
 
-    // Process each heading and get content until next heading
     headings.forEach((heading, idx) => {
-      const contents = [];
-      const seen = new Set();
-
-      // Get content between this heading and the next heading
       const nextHeading = headings[idx + 1];
       const stopCondition = (current) => {
         if (nextHeading && current[0] === nextHeading.element[0]) return true;
@@ -326,126 +275,411 @@ async function chunkUrl(url, options = {}) {
         return false;
       };
 
-      const pieces = extractContentPieces(heading.element, stopCondition);
-
-      // Deduplicate and add to contents
+      const pieces = extractContentPieces($, heading.element, stopCondition);
+      const unique = [];
+      const seen = new Set();
       for (const piece of pieces) {
-        if (!seen.has(piece) && !globalSeen.has(piece)) {
-          contents.push(piece);
-          seen.add(piece);
-          globalSeen.add(piece);
+        if (!seen.has(piece.text) && !globalSeen.has(piece.text)) {
+          unique.push(piece);
+          seen.add(piece.text);
+          globalSeen.add(piece.text);
+        }
+      }
+      if (!unique.length) return;
+
+      let smallChunks;
+      if (finalOptions.strategy === 'recursive') {
+        const combinedText = unique.map((p) => p.text).join('\n\n');
+        const split = recursiveSplit(combinedText, target.max);
+        const merged = mergeSmallChunks(split, 50);
+        smallChunks = merged.map((text) => ({ text, content_type: detectContentType(text) }));
+      } else {
+        smallChunks = [];
+        for (const p of unique) {
+          if (countWords(p.text) <= target.max) {
+            smallChunks.push({ text: p.text, content_type: p.type });
+          } else {
+            for (const piece of recursiveSplit(p.text, target.max)) {
+              smallChunks.push({ text: piece, content_type: p.type });
+            }
+          }
         }
       }
 
-      // Combine all pieces into one text block for processing
-      if (contents.length > 0) {
-        let combinedText = contents.join('\n\n');
-
-        // For recursive strategy, apply size-based splitting
-        let finalChunks = [];
-        if (finalOptions.strategy === 'recursive') {
-          finalChunks = recursiveSplit(combinedText, targetSize.max);
-          finalChunks = mergeSmallChunks(finalChunks, 50);
-        } else {
-          // For heading strategy, keep original structure
-          finalChunks = contents;
-        }
-
-        if (finalChunks.length > 0) {
-          bigChunks.push({
-            big_chunk_index: bigChunks.length + 1,
-            title: heading.title,
-            level: heading.level,
-            small_chunks: finalChunks
-          });
-        }
-      }
+      bigChunks.push({
+        title: heading.title,
+        level: heading.level,
+        heading_path: heading.path,
+        fragment: heading.fragment,
+        small_chunks: smallChunks,
+      });
     });
   }
 
-  // Fallback: If no headings found, use fixed-size chunking
-  if (bigChunks.length === 0 || finalOptions.strategy === 'fixed') {
+  if (!bigChunks.length || finalOptions.strategy === 'fixed') {
+    if (finalOptions.strategy !== 'fixed' && bigChunks.length === 0) {
+      warnings.push('No usable headings found; using fixed-size chunking on main content.');
+    }
     const mainContent = $('main, article, .content, .post-content, .entry-content').first();
-    if (mainContent.length) {
-      const allParagraphs = [];
-
-      mainContent.find('p, li').each((_, elem) => {
-        const text = cleanText($(elem).text());
-        if (text && text.length > 20 && !shouldSkip(text)) {
-          allParagraphs.push(text);
-        }
+    const root = mainContent.length ? mainContent : $('body');
+    const paragraphs = [];
+    root.find('p, li, blockquote, pre').each((_, elem) => {
+      const text = cleanText($(elem).text());
+      if (text && text.length > 20 && !shouldSkip(text)) paragraphs.push(text);
+    });
+    if (paragraphs.length) {
+      const combined = paragraphs.join('\n\n');
+      const split = recursiveSplit(combined, target.max);
+      const merged = mergeSmallChunks(split, 50);
+      bigChunks.push({
+        title: 'Main Content',
+        level: 1,
+        heading_path: ['Main Content'],
+        fragment: null,
+        small_chunks: merged.map((text) => ({ text, content_type: detectContentType(text) })),
       });
-
-      if (allParagraphs.length > 0) {
-        const combinedText = allParagraphs.join('\n\n');
-        const fixedChunks = recursiveSplit(combinedText, targetSize.max);
-        const mergedChunks = mergeSmallChunks(fixedChunks, 50);
-
-        if (mergedChunks.length > 0) {
-          bigChunks.push({
-            big_chunk_index: 1,
-            title: 'Main Content',
-            level: 1,
-            small_chunks: mergedChunks
-          });
-        }
-      }
     }
   }
 
-  // Apply overlap if specified
-  bigChunks.forEach(chunk => {
-    if (finalOptions.overlap > 0) {
+  if (finalOptions.overlap > 0) {
+    for (const chunk of bigChunks) {
       chunk.small_chunks = addOverlap(chunk.small_chunks, finalOptions.overlap);
     }
+  }
+
+  return bigChunks;
+}
+
+function collectHeadings($, docTitle) {
+  const headings = [];
+  const stack = [];
+  if (docTitle) stack.push({ title: docTitle, level: 0 });
+  $('h1, h2, h3, h4, h5, h6').each((_, heading) => {
+    const $h = $(heading);
+    if (isInNavOrFooter($, heading)) return;
+    const title = cleanText($h.text());
+    if (!title || title.length < 3) return;
+    const level = Number(heading.tagName.charAt(1));
+
+    while (stack.length && stack[stack.length - 1].level >= level) stack.pop();
+    stack.push({ title, level });
+
+    const path = stack.slice(-3).map((h) => h.title).filter((t, i, arr) => i === 0 || t !== arr[i - 1]);
+    const id = $h.attr('id');
+    const fragment = id ? `#${id}` : `#${slugify(title)}`;
+
+    headings.push({ element: $h, title, level, path, fragment });
   });
+  return headings;
+}
 
-  // Add metadata to chunks
-  const enhancedChunks = bigChunks.map(chunk => {
-    const smallChunksWithMetadata = chunk.small_chunks.map((content, idx) => ({
-      text: content,
-      word_count: countWords(content),
-      char_count: content.length,
-      token_estimate: estimateTokens(content),
-      chunk_index: idx + 1
-    }));
+function extractContentPieces($, startElement, stopCondition) {
+  const pieces = [];
+  let current = startElement.next();
 
-    const totalWords = smallChunksWithMetadata.reduce((sum, c) => sum + c.word_count, 0);
-    const totalTokens = smallChunksWithMetadata.reduce((sum, c) => sum + c.token_estimate, 0);
+  while (current.length) {
+    if (stopCondition(current)) break;
+    let text = '';
+    let type = 'prose';
+
+    if (current.is('ul, ol')) {
+      const items = [];
+      current.find('li').each((_, li) => {
+        const t = cleanText($(li).text());
+        if (t && t.length > 2 && !shouldSkip(t)) items.push(`- ${t}`);
+      });
+      if (items.length) { text = items.join('\n'); type = 'list'; }
+    } else if (current.is('blockquote')) {
+      text = cleanText(current.text());
+      if (text) { text = `> ${text}`; type = 'quote'; }
+    } else if (current.is('pre, code')) {
+      text = cleanText(current.text());
+      if (text) { text = `\`\`\`\n${text}\n\`\`\``; type = 'code'; }
+    } else if (current.is('table')) {
+      text = cleanText(current.text());
+      type = 'table';
+    } else if (current.is('p, div:not(:has(*)), section, article')) {
+      text = cleanText(current.text());
+      type = 'prose';
+    }
+
+    if (text && text.length > 15 && !shouldSkip(text)) {
+      pieces.push({ text, type });
+    }
+    current = current.next();
+  }
+
+  return pieces;
+}
+
+// --- Splitting helpers -----------------------------------------------------
+
+function recursiveSplit(text, maxWords) {
+  if (countWords(text) <= maxWords) return [text];
+
+  const paragraphs = text.split(/\n\n+/);
+  if (paragraphs.length > 1) {
+    const result = [];
+    let current = '';
+    for (const para of paragraphs) {
+      const test = current ? `${current}\n\n${para}` : para;
+      if (countWords(test) <= maxWords) {
+        current = test;
+      } else {
+        if (current) result.push(current);
+        current = para;
+        if (countWords(current) > maxWords) {
+          result.push(...splitBySentences(current, maxWords));
+          current = '';
+        }
+      }
+    }
+    if (current) result.push(current);
+    return result;
+  }
+
+  return splitBySentences(text, maxWords);
+}
+
+function splitBySentences(text, maxWords) {
+  let sentences;
+  try {
+    sentences = sbd.sentences(text, { newline_boundaries: true, sanitize: false });
+    if (!sentences.length) sentences = regexSentences(text);
+  } catch {
+    sentences = regexSentences(text);
+  }
+  if (!sentences.length || (sentences.length === 1 && countWords(sentences[0]) > maxWords)) {
+    return forceSplitByWords(text, maxWords);
+  }
+
+  const result = [];
+  let current = '';
+  for (const sentence of sentences) {
+    const test = current ? `${current} ${sentence}` : sentence;
+    if (countWords(test) <= maxWords) current = test;
+    else {
+      if (current) result.push(current);
+      if (countWords(sentence) > maxWords) {
+        result.push(...forceSplitByWords(sentence, maxWords));
+        current = '';
+      } else {
+        current = sentence;
+      }
+    }
+  }
+  if (current) result.push(current);
+  return result;
+}
+
+function forceSplitByWords(text, maxWords) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [text];
+  const result = [];
+  for (let i = 0; i < words.length; i += maxWords) {
+    result.push(words.slice(i, i + maxWords).join(' '));
+  }
+  return result;
+}
+
+function regexSentences(text) {
+  return text.match(/[^.!?]+[.!?]+/g) || [text];
+}
+
+function mergeSmallChunks(chunks, minWords = 50) {
+  if (chunks.length <= 1) return chunks;
+  const result = [];
+  let i = 0;
+  while (i < chunks.length) {
+    let current = chunks[i];
+    let wc = countWords(current);
+    while (wc < minWords && i + 1 < chunks.length) {
+      i++;
+      current = `${current}\n\n${chunks[i]}`;
+      wc = countWords(current);
+    }
+    result.push(current);
+    i++;
+  }
+  return result;
+}
+
+function addOverlap(smallChunks, overlapWords) {
+  if (overlapWords === 0 || smallChunks.length <= 1) return smallChunks;
+  const result = [];
+  for (let i = 0; i < smallChunks.length; i++) {
+    if (i === 0) { result.push(smallChunks[i]); continue; }
+    const prevWords = smallChunks[i - 1].text.trim().split(/\s+/);
+    const overlap = prevWords.slice(-Math.min(overlapWords, prevWords.length)).join(' ');
+    result.push({ ...smallChunks[i], text: `${overlap} ${smallChunks[i].text}` });
+  }
+  return result;
+}
+
+// --- Enhancement: metadata, positions, token counts ------------------------
+
+function enhanceChunks(bigChunks, tokenizer) {
+  let charCursor = 0;
+  const allTexts = bigChunks.flatMap((c) => c.small_chunks.map((sc) => sc.text));
+  const totalChars = allTexts.join('\n\n').length || 1;
+  const encoder = ENCODERS[tokenizer] || null;
+
+  return bigChunks.map((chunk, bigIdx) => {
+    const smalls = chunk.small_chunks.map((sc, idx) => {
+      const text = sc.text;
+      const word_count = countWords(text);
+      const char_count = text.length;
+      const tokens = encoder ? encoder(text).length : Math.ceil(word_count * 0.75);
+      const start_char = charCursor;
+      const end_char = charCursor + char_count;
+      const percent_through_doc = Math.round((start_char / totalChars) * 1000) / 1000;
+      charCursor = end_char + 2;
+
+      return {
+        text,
+        content_type: sc.content_type || detectContentType(text),
+        chunk_index: idx + 1,
+        word_count,
+        char_count,
+        tokens,
+        token_estimate: tokens,
+        start_char,
+        end_char,
+        percent_through_doc,
+      };
+    });
+
+    const totalWords = smalls.reduce((s, c) => s + c.word_count, 0);
+    const totalChunkChars = smalls.reduce((s, c) => s + c.char_count, 0);
+    const totalTokens = smalls.reduce((s, c) => s + c.tokens, 0);
 
     return {
-      ...chunk,
-      small_chunks: smallChunksWithMetadata,
+      big_chunk_index: bigIdx + 1,
+      title: chunk.title,
+      level: chunk.level,
+      heading_path: chunk.heading_path,
+      fragment: chunk.fragment,
+      small_chunks: smalls,
       metadata: {
-        total_small_chunks: smallChunksWithMetadata.length,
+        total_small_chunks: smalls.length,
         total_words: totalWords,
-        total_characters: smallChunksWithMetadata.reduce((sum, c) => sum + c.char_count, 0),
-        total_tokens_estimate: totalTokens
-      }
+        total_characters: totalChunkChars,
+        total_tokens: totalTokens,
+        total_tokens_estimate: totalTokens,
+      },
     };
   });
+}
 
-  // Clean up and filter
-  const cleanedChunks = enhancedChunks
-    .filter(chunk => chunk.small_chunks.length > 0)
-    .map((chunk, index) => ({
-      ...chunk,
-      big_chunk_index: index + 1
-    }));
+// --- Format converters -----------------------------------------------------
 
-  return {
-    big_chunks: cleanedChunks,
-    settings: {
-      strategy: finalOptions.strategy,
-      chunk_size: finalOptions.chunkSize,
-      overlap_words: finalOptions.overlap,
-      auto_detected: options.mode === 'auto' || options.strategy === 'auto'
-    },
-    summary: {
-      total_big_chunks: cleanedChunks.length,
-      total_small_chunks: cleanedChunks.reduce((sum, c) => sum + c.small_chunks.length, 0),
-      total_words: cleanedChunks.reduce((sum, c) => sum + c.metadata.total_words, 0),
-      total_tokens_estimate: cleanedChunks.reduce((sum, c) => sum + c.metadata.total_tokens_estimate, 0)
+function toJSONL(result) {
+  const lines = [];
+  for (const big of result.big_chunks) {
+    for (const sc of big.small_chunks) {
+      lines.push(JSON.stringify({
+        text: sc.text,
+        heading_path: big.heading_path,
+        fragment: big.fragment,
+        content_type: sc.content_type,
+        word_count: sc.word_count,
+        tokens: sc.tokens,
+        percent_through_doc: sc.percent_through_doc,
+        source_url: result.source.url,
+      }));
     }
-  };
+  }
+  return lines.join('\n');
+}
+
+function toMarkdown(result) {
+  const lines = [];
+  if (result.source.title) lines.push(`# ${result.source.title}`, '');
+  if (result.source.author) lines.push(`*by ${result.source.author}*`, '');
+  if (result.source.published) lines.push(`*published ${result.source.published}*`, '');
+  lines.push(`Source: ${result.source.url}`, '', '---', '');
+  for (const big of result.big_chunks) {
+    const prefix = '#'.repeat(Math.min(Math.max(big.level, 1), 6));
+    lines.push(`${prefix} ${big.title}`, '');
+    for (const sc of big.small_chunks) {
+      lines.push(sc.text, '');
+    }
+  }
+  return lines.join('\n');
+}
+
+function toLangChain(result) {
+  const documents = [];
+  for (const big of result.big_chunks) {
+    for (const sc of big.small_chunks) {
+      documents.push({
+        page_content: sc.text,
+        metadata: {
+          source: result.source.url,
+          title: result.source.title,
+          author: result.source.author,
+          heading_path: big.heading_path,
+          heading: big.title,
+          level: big.level,
+          fragment: big.fragment,
+          content_type: sc.content_type,
+          word_count: sc.word_count,
+          tokens: sc.tokens,
+          char_range: [sc.start_char, sc.end_char],
+          percent_through_doc: sc.percent_through_doc,
+        },
+      });
+    }
+  }
+  return documents;
+}
+
+// --- Small helpers ---------------------------------------------------------
+
+function countWords(text) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function cleanText(text) {
+  return text.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function cleanOneLine(text) {
+  return (text || '').replace(/\s+/g, ' ').trim();
+}
+
+function isInNavOrFooter($, element) {
+  return $(element).closest('nav, footer, header.site-header').length > 0;
+}
+
+function shouldSkip(text) {
+  const skipPatterns = [
+    /^\s*$/,
+    /^(facebook|twitter|instagram|linkedin)$/i,
+    /^\d+\s*share/i,
+    /^comments off/i,
+    /^<img/,
+    /^\s*\d+\s*$/,
+    /^(facebook twitter pinterest linkedin)$/i,
+    /privacy policy$/i,
+    /^share$/i,
+    /^tweet$/i,
+  ];
+  return skipPatterns.some((p) => p.test(text));
+}
+
+function detectContentType(text) {
+  if (/^```/.test(text)) return 'code';
+  if (/^> /.test(text)) return 'quote';
+  if (/^- /.test(text) && text.split('\n').every((l) => !l.trim() || l.startsWith('- '))) return 'list';
+  return 'prose';
+}
+
+function slugify(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .slice(0, 64);
 }

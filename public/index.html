@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Web Content Chunker v1.2.0 - Built by Search Influence -->
+    <!-- Web Content Chunker v3.0.0 - Built by Search Influence -->
     <!-- Last Updated: July 25, 2025 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,11 +15,11 @@
         new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
         j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-        })(window,document,'script','dataLayer','GTM-XXXXXXX');
+        })(window,document,'script','dataLayer','GTM-4G43');
     </script>
     <!-- End Google Tag Manager -->
     <style>
-        /* Web Content Chunker Styles v1.2.0 */
+        /* Web Content Chunker Styles v3.0.0 */
         * {
             margin: 0;
             padding: 0;
@@ -1022,13 +1022,189 @@
                 font-size: 2rem;
             }
         }
+
+        /* Feedback widget */
+        .feedback-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 40;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border: 0;
+            border-radius: 999px;
+            background: var(--orange-accent);
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+        .feedback-btn:hover { background: #d3691b; transform: scale(1.05); }
+        .feedback-btn:active { transform: scale(0.97); }
+        .feedback-btn svg { width: 16px; height: 16px; }
+        @media (max-width: 600px) {
+            .feedback-btn-label { display: none; }
+            .feedback-btn { padding: 12px; }
+        }
+
+        .feedback-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+        }
+        .feedback-modal {
+            position: relative;
+            width: 100%;
+            max-width: 460px;
+            padding: 28px;
+            border-radius: 14px;
+            background: #34495e;
+            color: #fff;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .feedback-modal h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.15rem;
+            font-weight: 800;
+            margin: 0 0 4px;
+        }
+        .feedback-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 6px;
+            border: 0;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.6);
+            border-radius: 6px;
+            cursor: pointer;
+            line-height: 0;
+        }
+        .feedback-close:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+        .feedback-label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 8px;
+        }
+        .feedback-types {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .feedback-type-btn {
+            padding: 10px 12px;
+            border: 0;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease;
+            text-align: left;
+        }
+        .feedback-type-btn:hover { background: rgba(255, 255, 255, 0.18); }
+        .feedback-type-btn.is-active {
+            background: var(--orange-accent);
+            color: #fff;
+        }
+        .feedback-type-btn .emoji { margin-right: 6px; }
+        .feedback-input,
+        .feedback-textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+            font-size: 0.9rem;
+            font-family: inherit;
+            margin-bottom: 16px;
+        }
+        .feedback-textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        .feedback-input:focus,
+        .feedback-textarea:focus {
+            outline: none;
+            border-color: var(--orange-accent);
+            box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.25);
+        }
+        .feedback-input::placeholder,
+        .feedback-textarea::placeholder { color: rgba(255, 255, 255, 0.4); }
+        .feedback-error { color: #ff9b9b; font-size: 0.85rem; margin: -8px 0 12px; }
+        .feedback-actions { display: flex; gap: 8px; }
+        .feedback-btn-secondary,
+        .feedback-btn-submit {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .feedback-btn-secondary {
+            background: transparent;
+            color: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .feedback-btn-secondary:hover { background: rgba(255, 255, 255, 0.08); }
+        .feedback-btn-submit {
+            background: var(--orange-accent);
+            color: #fff;
+            border: 0;
+        }
+        .feedback-btn-submit:hover:not(:disabled) { background: #d3691b; }
+        .feedback-btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+        .feedback-success { text-align: center; padding: 24px 0 8px; }
+        .feedback-success-icon {
+            width: 52px;
+            height: 52px;
+            margin: 0 auto 12px;
+            border-radius: 999px;
+            background: rgba(39, 174, 96, 0.2);
+            color: #27ae60;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .feedback-optional {
+            text-transform: none;
+            font-weight: 500;
+            letter-spacing: 0;
+            color: rgba(255, 255, 255, 0.5);
+        }
     </style>
 </head>
 <body>
     <!-- Google Tag Manager (noscript) -->
     <noscript>
         <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-XXXXXXX"
+            src="https://www.googletagmanager.com/ns.html?id=GTM-4G43"
             height="0"
             width="0"
             style="display:none;visibility:hidden"
@@ -1115,6 +1291,27 @@
                                     <option value="fixed">Fixed Size</option>
                                 </select>
                                 <span class="option-hint">How content is divided into chunks</span>
+                            </div>
+
+                            <div class="option-group">
+                                <label for="extract-mode">Extraction Engine</label>
+                                <select id="extract-mode" name="extract">
+                                    <option value="auto">Auto: Defuddle with fallback</option>
+                                    <option value="defuddle">Defuddle only (cleaner)</option>
+                                    <option value="cheerio">Cheerio only (legacy)</option>
+                                </select>
+                                <span class="option-hint">Main-content extraction approach</span>
+                            </div>
+
+                            <div class="option-group">
+                                <label for="output-format">Copy / Download Format</label>
+                                <select id="output-format" name="format">
+                                    <option value="json">JSON (default)</option>
+                                    <option value="markdown">Markdown</option>
+                                    <option value="jsonl">JSONL (one chunk per line)</option>
+                                    <option value="langchain">LangChain Documents</option>
+                                </select>
+                                <span class="option-hint">Affects copy + download only; views stay JSON</span>
                             </div>
                         </div>
                     </div>
@@ -1222,7 +1419,7 @@
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
 
-    <!-- Web Content Chunker Application Logic v1.2.0 -->
+    <!-- Web Content Chunker Application Logic v3.0.0 -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Helper function to safely track events
@@ -1263,6 +1460,8 @@
             const overlapSlider = document.getElementById('overlap');
             const overlapValue = document.getElementById('overlap-value');
             const strategySelect = document.getElementById('strategy');
+            const extractModeSelect = document.getElementById('extract-mode');
+            const outputFormatSelect = document.getElementById('output-format');
 
             // Debug: Check if elements exist
             console.log('Webpage button:', webpageViewBtn);
@@ -1398,6 +1597,9 @@
                 if (chunkSize) requestBody.chunkSize = chunkSize;
                 if (overlap !== undefined) requestBody.overlap = overlap;
                 if (strategy !== 'auto') requestBody.strategy = strategy;
+                if (extractModeSelect.value && extractModeSelect.value !== 'auto') {
+                    requestBody.extract = extractModeSelect.value;
+                }
 
                 // Reset states
                 hideAll();
@@ -1440,50 +1642,106 @@
                 }
             });
 
-            // Copy JSON to clipboard
+            // Client-side format conversion (mirrors server-side toJSONL/toMarkdown/toLangChain)
+            function convertForExport(data, format) {
+                if (format === 'markdown') {
+                    const lines = [];
+                    if (data.source?.title) lines.push('# ' + data.source.title, '');
+                    if (data.source?.author) lines.push('*by ' + data.source.author + '*', '');
+                    if (data.source?.published) lines.push('*published ' + data.source.published + '*', '');
+                    lines.push('Source: ' + (data.source?.url || ''), '', '---', '');
+                    (data.big_chunks || []).forEach(bc => {
+                        const prefix = '#'.repeat(Math.min(Math.max(bc.level || 2, 1), 6));
+                        lines.push(prefix + ' ' + bc.title, '');
+                        (bc.small_chunks || []).forEach(sc => {
+                            lines.push(sc.text || sc, '');
+                        });
+                    });
+                    return { mime: 'text/markdown', ext: 'md', text: lines.join('\n') };
+                }
+                if (format === 'jsonl') {
+                    const lines = [];
+                    (data.big_chunks || []).forEach(bc => {
+                        (bc.small_chunks || []).forEach(sc => {
+                            lines.push(JSON.stringify({
+                                text: sc.text,
+                                heading_path: bc.heading_path,
+                                fragment: bc.fragment,
+                                content_type: sc.content_type,
+                                word_count: sc.word_count,
+                                tokens: sc.tokens ?? sc.token_estimate,
+                                percent_through_doc: sc.percent_through_doc,
+                                source_url: data.source?.url,
+                            }));
+                        });
+                    });
+                    return { mime: 'application/x-ndjson', ext: 'jsonl', text: lines.join('\n') };
+                }
+                if (format === 'langchain') {
+                    const docs = [];
+                    (data.big_chunks || []).forEach(bc => {
+                        (bc.small_chunks || []).forEach(sc => {
+                            docs.push({
+                                page_content: sc.text,
+                                metadata: {
+                                    source: data.source?.url,
+                                    title: data.source?.title,
+                                    author: data.source?.author,
+                                    heading_path: bc.heading_path,
+                                    heading: bc.title,
+                                    level: bc.level,
+                                    fragment: bc.fragment,
+                                    content_type: sc.content_type,
+                                    word_count: sc.word_count,
+                                    tokens: sc.tokens ?? sc.token_estimate,
+                                    char_range: [sc.start_char, sc.end_char],
+                                    percent_through_doc: sc.percent_through_doc,
+                                },
+                            });
+                        });
+                    });
+                    return { mime: 'application/json', ext: 'langchain.json', text: JSON.stringify(docs, null, 2) };
+                }
+                return { mime: 'application/json', ext: 'json', text: JSON.stringify(data, null, 2) };
+            }
+
+            async function fallbackCopy(text) {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            }
+
+            // Copy (in selected format) to clipboard
             document.getElementById('copy-json').addEventListener('click', async function() {
                 if (!currentData) return;
-                
-                // Track copy action
-                trackEvent('json_copied');
-                
+                const format = outputFormatSelect?.value || 'json';
+                trackEvent('content_copied', { format });
+                const { text } = convertForExport(currentData, format);
                 try {
-                    await navigator.clipboard.writeText(JSON.stringify(currentData, null, 2));
-                    this.textContent = '✅ Copied!';
-                    setTimeout(() => {
-                        this.textContent = '📋 Copy JSON';
-                    }, 2000);
+                    await navigator.clipboard.writeText(text);
                 } catch (err) {
-                    console.error('Copy failed:', err);
-                    // Fallback for older browsers
-                    const textArea = document.createElement('textarea');
-                    textArea.value = JSON.stringify(currentData, null, 2);
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    
-                    this.textContent = '✅ Copied!';
-                    setTimeout(() => {
-                        this.textContent = '📋 Copy JSON';
-                    }, 2000);
+                    console.error('Copy failed, using fallback:', err);
+                    await fallbackCopy(text);
                 }
+                const original = this.textContent;
+                this.textContent = '✅ Copied!';
+                setTimeout(() => { this.textContent = original; }, 2000);
             });
 
-            // Download JSON file
+            // Download (in selected format) as file
             document.getElementById('download-json').addEventListener('click', function() {
                 if (!currentData) return;
-                
-                // Track download action
-                trackEvent('json_downloaded');
-                
-                const blob = new Blob([JSON.stringify(currentData, null, 2)], { 
-                    type: 'application/json' 
-                });
+                const format = outputFormatSelect?.value || 'json';
+                trackEvent('content_downloaded', { format });
+                const { mime, ext, text } = convertForExport(currentData, format);
+                const blob = new Blob([text], { type: mime });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'page-chunks.json';
+                a.download = 'page-chunks.' + ext;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -1556,7 +1814,8 @@
                         // Add meta info with word/token counts if available
                         let metaText = `Section Level ${chunk.level} • ${chunk.small_chunks.length} content ${chunk.small_chunks.length === 1 ? 'piece' : 'pieces'}`;
                         if (chunk.metadata) {
-                            metaText += ` • ${chunk.metadata.total_words} words • ~${chunk.metadata.total_tokens_estimate} tokens`;
+                            const tokenCount = chunk.metadata.total_tokens ?? chunk.metadata.total_tokens_estimate;
+                            metaText += ` • ${chunk.metadata.total_words} words • ${tokenCount} tokens`;
                         }
                         html += `<div class="chunk-meta">${metaText}</div>`;
 
@@ -1599,24 +1858,50 @@
             }
 
             function displayChunksView(data) {
-                console.log('Displaying chunks view with data:', data); // Debug log
                 let html = '';
 
-                // Add summary info at the top if available
+                // Source metadata block (new in v3)
+                if (data.source) {
+                    const s = data.source;
+                    html += `<div class="chunks-summary">`;
+                    html += `<h3>📰 Source</h3>`;
+                    if (s.title) html += `<div><strong>${escapeHtml(s.title)}</strong></div>`;
+                    const meta = [];
+                    if (s.author) meta.push(`by ${escapeHtml(s.author)}`);
+                    if (s.published) meta.push(`published ${escapeHtml(s.published)}`);
+                    if (s.site) meta.push(escapeHtml(s.site));
+                    if (meta.length) html += `<div style="color:#666;font-size:0.9em;margin-top:4px;">${meta.join(' · ')}</div>`;
+                    if (s.url) html += `<div style="font-size:0.85em;margin-top:4px;"><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.url)}</a></div>`;
+                    html += `</div>`;
+                }
+
+                // Warnings (new in v3)
+                if (Array.isArray(data.warnings) && data.warnings.length) {
+                    html += `<div class="chunks-summary" style="background:#fff7ed;border-left:4px solid #f59e0b;">`;
+                    html += `<h3 style="color:#b45309;">⚠️ Warnings</h3>`;
+                    html += `<ul style="margin:0 0 0 20px;">`;
+                    data.warnings.forEach(w => { html += `<li>${escapeHtml(w)}</li>`; });
+                    html += `</ul></div>`;
+                }
+
+                // Summary info
                 if (data.summary) {
+                    const tokens = data.summary.total_tokens ?? data.summary.total_tokens_estimate ?? 0;
                     html += `<div class="chunks-summary">`;
                     html += `<h3>📊 Content Summary</h3>`;
                     html += `<div class="summary-stats">`;
                     html += `<div class="stat"><strong>${data.summary.total_big_chunks}</strong> Sections</div>`;
                     html += `<div class="stat"><strong>${data.summary.total_small_chunks}</strong> Chunks</div>`;
                     html += `<div class="stat"><strong>${data.summary.total_words.toLocaleString()}</strong> Words</div>`;
-                    html += `<div class="stat"><strong>~${data.summary.total_tokens_estimate.toLocaleString()}</strong> Tokens</div>`;
+                    html += `<div class="stat"><strong>${tokens.toLocaleString()}</strong> Tokens</div>`;
                     html += `</div>`;
                     if (data.settings) {
                         html += `<div class="settings-info">`;
                         html += `<span class="setting-badge">Strategy: ${data.settings.strategy}</span>`;
                         html += `<span class="setting-badge">Size: ${data.settings.chunk_size}</span>`;
                         html += `<span class="setting-badge">Overlap: ${data.settings.overlap_words} words</span>`;
+                        if (data.settings.extractor) html += `<span class="setting-badge">Extractor: ${data.settings.extractor}</span>`;
+                        if (data.settings.tokenizer) html += `<span class="setting-badge">Tokenizer: ${data.settings.tokenizer}</span>`;
                         if (data.settings.auto_detected) {
                             html += `<span class="setting-badge auto">✨ Auto-detected</span>`;
                         }
@@ -1626,16 +1911,27 @@
                 }
 
                 if (data.big_chunks && data.big_chunks.length > 0) {
-                    console.log('Found', data.big_chunks.length, 'big chunks'); // Debug log
-                    data.big_chunks.forEach((chunk, chunkIndex) => {
+                    data.big_chunks.forEach((chunk) => {
                         html += `<div class="big-chunk">`;
 
                         // Big chunk header with metadata
                         html += `<div class="big-chunk-header">`;
                         html += `<h3 class="big-chunk-title">${escapeHtml(chunk.title)}</h3>`;
+
+                        // Heading breadcrumb path (new in v3)
+                        if (Array.isArray(chunk.heading_path) && chunk.heading_path.length > 0) {
+                            html += `<div class="big-chunk-meta" style="font-size:0.85em;color:#555;margin-bottom:4px;">`;
+                            html += chunk.heading_path.map(p => escapeHtml(p)).join(' <span style="opacity:0.5;">›</span> ');
+                            html += `</div>`;
+                        }
+
+                        const tokens = chunk.metadata?.total_tokens ?? chunk.metadata?.total_tokens_estimate;
                         let metaText = `Chunk ${chunk.big_chunk_index} • Level ${chunk.level} • ${chunk.small_chunks.length} sections`;
                         if (chunk.metadata) {
-                            metaText += ` • ${chunk.metadata.total_words} words • ~${chunk.metadata.total_tokens_estimate} tokens`;
+                            metaText += ` • ${chunk.metadata.total_words} words • ${tokens} tokens`;
+                        }
+                        if (chunk.fragment) {
+                            metaText += ` • <code style="font-size:0.85em;">${escapeHtml(chunk.fragment)}</code>`;
                         }
                         html += `<div class="big-chunk-meta">${metaText}</div>`;
                         html += `</div>`;
@@ -1643,17 +1939,16 @@
                         // Small chunks container
                         html += `<div class="small-chunks-container">`;
                         chunk.small_chunks.forEach((smallChunk, smallIndex) => {
-                            // Handle new metadata structure
                             const text = smallChunk.text || smallChunk;
                             const wordCount = smallChunk.word_count;
-                            const tokenEstimate = smallChunk.token_estimate;
+                            const tokens = smallChunk.tokens ?? smallChunk.token_estimate;
+                            const contentType = smallChunk.content_type;
 
                             html += `<div class="small-chunk">`;
                             html += `<div class="small-chunk-index">${smallIndex + 1}</div>`;
                             html += `<div class="small-chunk-content">`;
 
                             if (text.startsWith('- ')) {
-                                // Handle lists
                                 const listItems = text.split('\n').map(item => {
                                     if (item.startsWith('- ')) {
                                         return `<li>${escapeHtml(item.substring(2))}</li>`;
@@ -1662,22 +1957,19 @@
                                 }).filter(Boolean).join('');
                                 html += `<ul>${listItems}</ul>`;
                             } else if (text.startsWith('> ')) {
-                                // Handle blockquotes
                                 html += `<blockquote>${escapeHtml(text.substring(2))}</blockquote>`;
                             } else if (text.startsWith('```')) {
-                                // Handle code blocks
                                 const code = text.replace(/```\n?/g, '');
                                 html += `<pre><code>${escapeHtml(code)}</code></pre>`;
                             } else {
-                                // Handle regular content
                                 html += escapeHtml(text);
                             }
 
-                            // Add metadata if available
-                            if (wordCount || tokenEstimate) {
+                            if (wordCount || tokens || contentType) {
                                 html += `<div class="chunk-metadata">`;
+                                if (contentType) html += `<span class="meta-badge">${escapeHtml(contentType)}</span>`;
                                 if (wordCount) html += `<span class="meta-badge">${wordCount} words</span>`;
-                                if (tokenEstimate) html += `<span class="meta-badge">~${tokenEstimate} tokens</span>`;
+                                if (tokens) html += `<span class="meta-badge">${tokens} tokens</span>`;
                                 html += `</div>`;
                             }
 
@@ -1689,13 +1981,10 @@
                         html += `</div>`;
                     });
                 } else {
-                    console.log('No big chunks found'); // Debug log
-                    html = '<div class="big-chunk"><div class="big-chunk-header"><h3 class="big-chunk-title">No Chunks Found</h3></div><div class="small-chunks-container"><p>No content chunks were extracted from this URL.</p></div></div>';
+                    html += '<div class="big-chunk"><div class="big-chunk-header"><h3 class="big-chunk-title">No Chunks Found</h3></div><div class="small-chunks-container"><p>No content chunks were extracted from this URL.</p></div></div>';
                 }
 
-                console.log('Generated HTML length:', html.length); // Debug log
                 chunksContent.innerHTML = html;
-                console.log('Chunks content element:', chunksContent); // Debug log
             }
 
             function escapeHtml(text) {
@@ -1707,6 +1996,187 @@
             // Focus on input when page loads
             urlInput.focus();
         });
+    </script>
+
+    <!-- Feedback widget -->
+    <button type="button" class="feedback-btn" id="feedbackBtn" aria-label="Send feedback">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span class="feedback-btn-label">Feedback</span>
+    </button>
+
+    <script>
+        (function () {
+            const TYPES = [
+                { value: 'bug', label: 'Bug Report', emoji: '🐛', placeholder: 'What went wrong, and how can we reproduce it?' },
+                { value: 'feature', label: 'Feature Request', emoji: '✨', placeholder: 'What would you like getchunks to do?' },
+                { value: 'improvement', label: 'Improvement', emoji: '💡', placeholder: 'What part of getchunks should work better?' },
+                { value: 'other', label: 'Other', emoji: '💬', placeholder: 'Share your thoughts...' }
+            ];
+
+            const btn = document.getElementById('feedbackBtn');
+            let overlay = null;
+            let selectedType = 'improvement';
+            let submitting = false;
+            let previouslyFocused = null;
+
+            function placeholderFor(type) {
+                return (TYPES.find(t => t.value === type) || TYPES[2]).placeholder;
+            }
+
+            function closeModal() {
+                if (!overlay) return;
+                document.body.removeChild(overlay);
+                overlay = null;
+                document.removeEventListener('keydown', onKeydown);
+                if (previouslyFocused && previouslyFocused.focus) previouslyFocused.focus();
+            }
+
+            function onKeydown(e) {
+                if (e.key === 'Escape') closeModal();
+            }
+
+            function renderSuccess() {
+                overlay.querySelector('.feedback-modal').innerHTML = `
+                    <button type="button" class="feedback-close" aria-label="Close feedback">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    </button>
+                    <div class="feedback-success">
+                        <div class="feedback-success-icon">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        </div>
+                        <p style="font-weight:700;margin:0 0 4px;">Thank you!</p>
+                        <p style="margin:0;color:rgba(255,255,255,0.7);font-size:0.9rem;">Your feedback helps us improve getchunks.</p>
+                    </div>
+                `;
+                overlay.querySelector('.feedback-close').addEventListener('click', closeModal);
+                setTimeout(closeModal, 1800);
+            }
+
+            async function submitFeedback(form) {
+                if (submitting) return;
+                const message = form.message.value.trim();
+                if (!message) return;
+                const email = form.email.value.trim();
+                const errorEl = overlay.querySelector('.feedback-error');
+                const submitBtn = form.querySelector('.feedback-btn-submit');
+
+                submitting = true;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Sending...';
+                if (errorEl) errorEl.remove();
+
+                try {
+                    const res = await fetch('/api/feedback', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: selectedType,
+                            message,
+                            email: email || undefined,
+                            pageUrl: window.location.href
+                        })
+                    });
+                    if (res.ok) {
+                        renderSuccess();
+                    } else {
+                        const data = await res.json().catch(() => null);
+                        showError(form, (data && data.error) || 'Failed to submit feedback.');
+                    }
+                } catch (err) {
+                    showError(form, 'Failed to submit feedback. Please try again.');
+                } finally {
+                    submitting = false;
+                    if (submitBtn.isConnected) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Send feedback';
+                    }
+                }
+            }
+
+            function showError(form, msg) {
+                let errorEl = form.querySelector('.feedback-error');
+                if (!errorEl) {
+                    errorEl = document.createElement('p');
+                    errorEl.className = 'feedback-error';
+                    form.querySelector('.feedback-actions').before(errorEl);
+                }
+                errorEl.textContent = msg;
+            }
+
+            function openModal() {
+                if (overlay) return;
+                previouslyFocused = document.activeElement;
+                selectedType = 'improvement';
+
+                overlay = document.createElement('div');
+                overlay.className = 'feedback-overlay';
+                overlay.setAttribute('role', 'dialog');
+                overlay.setAttribute('aria-modal', 'true');
+                overlay.setAttribute('aria-labelledby', 'feedback-title');
+                overlay.innerHTML = `
+                    <div class="feedback-modal">
+                        <button type="button" class="feedback-close" aria-label="Close feedback">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        </button>
+                        <h3 id="feedback-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--orange-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            Send feedback
+                        </h3>
+                        <p style="color:rgba(255,255,255,0.65);font-size:0.85rem;margin:4px 0 18px;">Anonymous by default — drop an email if you'd like a reply.</p>
+                        <form class="feedback-form" novalidate>
+                            <span class="feedback-label">Type of feedback</span>
+                            <div class="feedback-types" role="radiogroup" aria-label="Type of feedback">
+                                ${TYPES.map(t => `
+                                    <button type="button" class="feedback-type-btn${t.value === selectedType ? ' is-active' : ''}" data-type="${t.value}" role="radio" aria-checked="${t.value === selectedType}">
+                                        <span class="emoji">${t.emoji}</span>${t.label}
+                                    </button>
+                                `).join('')}
+                            </div>
+                            <label class="feedback-label" for="feedback-email">Email <span class="feedback-optional">(optional, if you want a reply)</span></label>
+                            <input class="feedback-input" id="feedback-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" />
+                            <label class="feedback-label" for="feedback-message">Your feedback</label>
+                            <textarea class="feedback-textarea" id="feedback-message" name="message" rows="5" maxlength="4000" placeholder="${placeholderFor(selectedType)}" required></textarea>
+                            <div class="feedback-actions">
+                                <button type="button" class="feedback-btn-secondary">Cancel</button>
+                                <button type="submit" class="feedback-btn-submit">Send feedback</button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+                document.addEventListener('keydown', onKeydown);
+
+                const form = overlay.querySelector('form');
+                const textarea = form.querySelector('textarea');
+
+                overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+                overlay.querySelector('.feedback-close').addEventListener('click', closeModal);
+                overlay.querySelector('.feedback-btn-secondary').addEventListener('click', closeModal);
+
+                overlay.querySelectorAll('.feedback-type-btn').forEach(b => {
+                    b.addEventListener('click', () => {
+                        selectedType = b.dataset.type;
+                        overlay.querySelectorAll('.feedback-type-btn').forEach(x => {
+                            const active = x.dataset.type === selectedType;
+                            x.classList.toggle('is-active', active);
+                            x.setAttribute('aria-checked', active ? 'true' : 'false');
+                        });
+                        textarea.placeholder = placeholderFor(selectedType);
+                    });
+                });
+
+                form.addEventListener('submit', e => {
+                    e.preventDefault();
+                    submitFeedback(form);
+                });
+
+                setTimeout(() => textarea.focus(), 50);
+            }
+
+            btn.addEventListener('click', openModal);
+        })();
     </script>
 </body>
 </html>

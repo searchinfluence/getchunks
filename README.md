@@ -1,6 +1,8 @@
-# Web Content Chunker v1.2.0
+# Web Content Chunker v3.0.0
 
-A modern web application that extracts and structures content from web pages into clean, organized JSON chunks. Built with Search Influence branding for professional content analysis and SEO research.
+A web application that extracts and structures content from web pages into clean, organized chunks for RAG, LLM pipelines, and content analysis. Zero AI/LLM dependencies — all improvements are pure code.
+
+**v3 highlights:** [Defuddle](https://github.com/kepano/defuddle)-powered main-content extraction (with cheerio fallback), accurate BPE token counting via [gpt-tokenizer](https://github.com/niieani/gpt-tokenizer), sentence-aware recursive splits via [sbd](https://github.com/Tessmore/sbd), heading breadcrumbs, position metadata, content-type tagging, JSON-LD + OpenGraph + Twitter card capture, and multiple output formats (JSON / Markdown / JSONL / LangChain Documents). Built with Search Influence branding for professional content analysis and SEO research.
 
 🔗 **Live App**: [https://getchunks.vercel.app](https://getchunks.vercel.app)
 
@@ -128,6 +130,17 @@ curl -X POST https://getchunks.vercel.app/api/chunk \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com"}'
 ```
+
+## Feedback Widget
+
+A floating feedback button appears on every page. Submissions POST to `/api/feedback`, which forwards a Slack-formatted message to an Incoming Webhook.
+
+Env vars (Vercel → Settings → Environment Variables):
+
+- `SLACK_FEEDBACK_WEBHOOK_URL` — Slack Incoming Webhook URL. Without this, submissions return `{ delivered: false }` and nothing reaches Slack.
+- `FEEDBACK_PROJECT_NAME` — optional, defaults to `getchunks`. Shown in the Slack header; useful when one webhook is shared across projects.
+
+Submissions are anonymous by default; users can optionally provide an email for follow-up.
 
 ## Error Handling
 
