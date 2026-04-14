@@ -631,7 +631,13 @@
             padding: 20px 30px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .big-chunk-header-main {
+            flex: 1 1 auto;
+            min-width: 0;
         }
 
         .big-chunk-title {
@@ -640,12 +646,42 @@
             margin: 0;
         }
 
+        .big-chunk-breadcrumb {
+            margin-top: 6px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: rgba(255, 255, 255, 0.75);
+            word-break: break-word;
+        }
+
+        .big-chunk-breadcrumb .crumb-sep {
+            margin: 0 6px;
+            opacity: 0.5;
+        }
+
         .big-chunk-meta {
+            flex: 0 0 auto;
             background: rgba(255, 255, 255, 0.15);
             padding: 6px 12px;
             border-radius: 20px;
             font-size: 0.85rem;
             font-weight: 500;
+            white-space: nowrap;
+            max-width: 40%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        @media (max-width: 640px) {
+            .big-chunk-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .big-chunk-meta {
+                max-width: 100%;
+                white-space: normal;
+                text-overflow: clip;
+            }
         }
 
         .small-chunks-container {
@@ -1339,8 +1375,8 @@
                             <button id="json-view-btn">📋 JSON</button>
                         </div>
                         <div class="results-actions">
-                            <button class="action-btn" id="copy-json">📋 Copy JSON</button>
-                            <button class="action-btn" id="download-json">⬇️ Download File</button>
+                            <button class="action-btn" id="copy-json">📋 Copy</button>
+                            <button class="action-btn" id="download-json">⬇️ Download</button>
                             <button class="action-btn" id="new-extraction">🔄 New Extraction</button>
                         </div>
                     </div>
@@ -1463,12 +1499,19 @@
             const extractModeSelect = document.getElementById('extract-mode');
             const outputFormatSelect = document.getElementById('output-format');
 
-            // Debug: Check if elements exist
-            console.log('Webpage button:', webpageViewBtn);
-            console.log('Chunks button:', chunksViewBtn);
-            console.log('JSON button:', jsonViewBtn);
-
             let currentData = null;
+
+            // Keep Copy/Download button labels in sync with the selected output format
+            const copyBtn = document.getElementById('copy-json');
+            const downloadBtn = document.getElementById('download-json');
+            const FORMAT_LABELS = { json: 'JSON', markdown: 'Markdown', jsonl: 'JSONL', langchain: 'LangChain' };
+            function refreshExportLabels() {
+                const label = FORMAT_LABELS[outputFormatSelect?.value] || 'Output';
+                copyBtn.textContent = `📋 Copy ${label}`;
+                downloadBtn.textContent = `⬇️ Download ${label}`;
+            }
+            outputFormatSelect?.addEventListener('change', refreshExportLabels);
+            refreshExportLabels();
 
             // Advanced options toggle
             advancedToggle.addEventListener('click', function() {
@@ -1501,24 +1544,9 @@
             }
 
             // View toggle functionality
-            webpageViewBtn.addEventListener('click', function() {
-                console.log('Webpage button clicked');
-                showWebpageView();
-            });
-
-            if (chunksViewBtn) {
-                chunksViewBtn.addEventListener('click', function() {
-                    console.log('Chunks button clicked');
-                    showChunksView();
-                });
-            } else {
-                console.error('Chunks button not found!');
-            }
-
-            jsonViewBtn.addEventListener('click', function() {
-                console.log('JSON button clicked');
-                showJsonView();
-            });
+            webpageViewBtn.addEventListener('click', showWebpageView);
+            chunksViewBtn.addEventListener('click', showChunksView);
+            jsonViewBtn.addEventListener('click', showJsonView);
 
             function showWebpageView() {
                 // Track view change
@@ -1535,31 +1563,16 @@
             }
 
             function showChunksView() {
-                console.log('Switching to chunks view'); // Debug log
-                console.log('chunksView element before changes:', chunksView);
-                console.log('chunksView current style.display:', chunksView.style.display);
-                
-                // Track view change
                 trackEvent('view_changed', { view: 'chunks' });
-                
+
                 webpageView.classList.remove('show');
-                webpageView.style.display = 'none'; // Force hide
+                webpageView.style.display = 'none';
                 chunksView.classList.add('show');
-                chunksView.style.display = 'block'; // Force show
-                
-                console.log('chunksView style.display after setting to block:', chunksView.style.display);
-                console.log('chunksView element after changes:', chunksView);
-                
+                chunksView.style.display = 'block';
                 jsonOutput.style.display = 'none';
                 webpageViewBtn.classList.remove('active');
                 chunksViewBtn.classList.add('active');
                 jsonViewBtn.classList.remove('active');
-                console.log('Chunks view classes:', chunksView.className); // Debug log
-                console.log('Chunks view computed display style:', window.getComputedStyle(chunksView).display); // Debug log
-                
-                // Let's also check the innerHTML to see if content exists
-                console.log('Chunks content innerHTML length:', chunksContent.innerHTML.length);
-                console.log('Chunks content first 100 chars:', chunksContent.innerHTML.substring(0, 100));
             }
 
             function showJsonView() {
@@ -1726,9 +1739,8 @@
                     console.error('Copy failed, using fallback:', err);
                     await fallbackCopy(text);
                 }
-                const original = this.textContent;
                 this.textContent = '✅ Copied!';
-                setTimeout(() => { this.textContent = original; }, 2000);
+                setTimeout(refreshExportLabels, 2000);
             });
 
             // Download (in selected format) as file
@@ -1787,16 +1799,10 @@
                 displayChunksView(data);
                 
                 results.classList.add('show');
-                
+
                 // Show webpage view by default
                 showWebpageView();
-                
-                // Debug: Let's also try showing chunks view after a delay
-                setTimeout(() => {
-                    console.log('Testing chunks view visibility...');
-                    showChunksView();
-                }, 1000);
-                
+
                 // Scroll to results
                 results.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
@@ -1916,24 +1922,26 @@
 
                         // Big chunk header with metadata
                         html += `<div class="big-chunk-header">`;
+                        html += `<div class="big-chunk-header-main">`;
                         html += `<h3 class="big-chunk-title">${escapeHtml(chunk.title)}</h3>`;
 
-                        // Heading breadcrumb path (new in v3)
-                        if (Array.isArray(chunk.heading_path) && chunk.heading_path.length > 0) {
-                            html += `<div class="big-chunk-meta" style="font-size:0.85em;color:#555;margin-bottom:4px;">`;
-                            html += chunk.heading_path.map(p => escapeHtml(p)).join(' <span style="opacity:0.5;">›</span> ');
+                        // Heading breadcrumb path — only show when it adds context beyond the title
+                        const breadcrumb = Array.isArray(chunk.heading_path) ? chunk.heading_path : [];
+                        const showBreadcrumb = breadcrumb.length > 1 || (breadcrumb.length === 1 && breadcrumb[0] !== chunk.title);
+                        if (showBreadcrumb) {
+                            html += `<div class="big-chunk-breadcrumb">`;
+                            html += breadcrumb.map(p => escapeHtml(p)).join('<span class="crumb-sep">›</span>');
                             html += `</div>`;
                         }
+                        html += `</div>`;
 
                         const tokens = chunk.metadata?.total_tokens ?? chunk.metadata?.total_tokens_estimate;
-                        let metaText = `Chunk ${chunk.big_chunk_index} • Level ${chunk.level} • ${chunk.small_chunks.length} sections`;
+                        let metaText = `Chunk ${chunk.big_chunk_index} • L${chunk.level} • ${chunk.small_chunks.length} sections`;
                         if (chunk.metadata) {
-                            metaText += ` • ${chunk.metadata.total_words} words • ${tokens} tokens`;
+                            metaText += ` • ${chunk.metadata.total_words}w • ${tokens}t`;
                         }
-                        if (chunk.fragment) {
-                            metaText += ` • <code style="font-size:0.85em;">${escapeHtml(chunk.fragment)}</code>`;
-                        }
-                        html += `<div class="big-chunk-meta">${metaText}</div>`;
+                        const metaTitle = chunk.fragment ? ` title="${escapeHtml(chunk.fragment)}"` : '';
+                        html += `<div class="big-chunk-meta"${metaTitle}>${metaText}</div>`;
                         html += `</div>`;
 
                         // Small chunks container
