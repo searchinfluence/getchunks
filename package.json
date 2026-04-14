@@ -1,7 +1,7 @@
 {
   "name": "@search-influence/web-content-chunker",
-  "version": "2.0.0",
-  "description": "Intelligent web content extraction with auto-detection, configurable chunk sizes, and context-aware overlap. Perfect for RAG systems, LLM training, and content analysis.",
+  "version": "3.0.0",
+  "description": "Intelligent web content extraction for RAG. Defuddle-powered main-content extraction, accurate BPE token counting, heading breadcrumbs, source metadata (JSON-LD, OpenGraph, Twitter), and multiple output formats (JSON, Markdown, JSONL, LangChain). Zero AI/LLM dependencies.",
   "type": "module",
   "main": "api/chunk.js",
   "scripts": {
@@ -31,9 +31,12 @@
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.12",
-    "node-fetch": "^3.3.2"
+    "defuddle": "^0.16.0",
+    "gpt-tokenizer": "^3.4.0",
+    "linkedom": "^0.18.12",
+    "node-fetch": "^3.3.2",
+    "sbd": "^1.0.19"
   },
-  "devDependencies": {},
   "engines": {
     "node": ">=18.0.0"
   }

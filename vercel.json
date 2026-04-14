@@ -3,6 +3,9 @@
   "functions": {
     "api/chunk.js": {
       "maxDuration": 30
+    },
+    "api/feedback.js": {
+      "maxDuration": 5
     }
   }
 }
