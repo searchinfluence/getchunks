@@ -5,7 +5,6 @@
   "type": "module",
   "main": "api/chunk.js",
   "scripts": {
-    "build": "node scripts/build.js",
     "serve": "python3 -m http.server 8080",
     "demo": "open public/index.html"
   },
@@ -24,17 +23,16 @@
   "homepage": "https://getchunks.searchinfluence.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/willscott-v2/getchunks"
+    "url": "https://github.com/searchinfluence/getchunks"
   },
   "bugs": {
-    "url": "https://github.com/willscott-v2/getchunks/issues"
+    "url": "https://github.com/searchinfluence/getchunks/issues"
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.12",
     "defuddle": "^0.16.0",
     "gpt-tokenizer": "^3.4.0",
     "linkedom": "^0.18.12",
-    "node-fetch": "^3.3.2",
     "sbd": "^1.0.19"
   },
   "engines": {

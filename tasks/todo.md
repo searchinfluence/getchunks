@@ -71,4 +71,33 @@ Source of truth: `ai-website-grader/app/globals.css` + `ontologizer-next/app/sty
 - Headless rendering, batch mode, auth — unchanged known limitations
 
 ## Review section
-(to be filled in when work completes)
+
+**Decisions made (2026-07-21):**
+- GTM `GTM-4G43` verified against grader + ontologizer `.env.local` — it's the shared SI container (legacy short ID). Hardcoded; build-injection machinery deleted.
+- Rate limiting via Vercel WAF rule (dashboard config) — no code-level limiter. Still to be applied in the Vercel dashboard.
+- Legacy design files deleted (recoverable from git history).
+
+**PR 1 — `feature/si-design-system` (#5):** CSS-only token swap in public/index.html to the canonical SI palette; Open Sans; flat orange CTAs; report-green results header; light summary/source cards inside the white content area; logo served locally. Playwright QA at 1440px/375px across landing, advanced options, both result views, feedback modal — all pass.
+
+**PR 2 — `fix/hardening-and-bugs` (stacked on #5):**
+
+Security:
+- api/chunk.js SSRF guards: scheme allowlist (http/https); DNS resolve + private/reserved range block (127/10/172.16/192.168 + 169.254 metadata + 100.64 CGNAT + IPv6 ULA/link-local/loopback); per-hop redirect re-validation via manual redirect loop (max 5); 5MB response cap; content-type allowlist. Verified: localhost/127/metadata/10.x/ftp/file all rejected 400; wikipedia http→https redirect followed to a real 12/29-chunk result.
+- escapeHtml escapes `"` and `'` — closes the `title="${fragment}"` attribute-injection XSS from scraped heading ids. Verified: payload stays inside the title attr, no onmouseover created, hover doesn't fire.
+- Slack mrkdwn escaping in feedback.js (`&<>`) on message/email/pageUrl/user-agent — kills `<!channel>` pings + `<url|label>` spoofing; pageUrl scheme-checked + length-capped.
+- Input validation: allowlist chunkSize/strategy/extract/format/tokenizer → 400 not 500; overlap bounded 0–200.
+- Error leak closed: ChunkError carries safe client text; generic 500s; feedback no longer echoes err.message.
+
+Bugs:
+- Overlap slider Auto-lock fixed — dragging to nonzero exits auto and the value reaches the request body (verified 25→request, 0→Auto).
+- Dead node-fetch `timeout` replaced with native fetch + `AbortSignal.timeout(25s)`; node-fetch removed (6 packages pruned).
+- `extract=defuddle` fails 422 instead of silently falling back to cheerio.
+
+Housekeeping:
+- Deleted scripts/build.js + vercel buildCommand + node-fetch; GTM hardcoded; GTM_SETUP.md rewritten.
+- Deleted ~1,900 lines of unused root design files.
+- README: MIT, searchinfluence/getchunks URLs, stale v1.2 section removed, v3/v3.1 history added; footer link fixed; FAQ "data secure" reworded to acknowledge analytics/logs.
+
+**Rate limiting — DONE (2026-07-21, via Vercel Firewall API):** Two additive custom rules live on prj_wOIeC5... (team will-scotts-projects, Pro). `chunk-rate-limit`: path pre `/api/chunk`, 20 req/60s/IP → deny. `feedback-rate-limit`: path pre `/api/feedback`, 5 req/600s/IP → deny. firewallEnabled=true, config version 2. Managed WAF ruleset untouched. Applied via `PATCH /v1/security/firewall/config` (rules.insert) after `vercel login` refresh; the CLI has no firewall command. To tune later: edit in the dashboard Firewall tab or re-PATCH.
+
+**Deferred:** fixture/snapshot tests for split/merge/overlap; nested-content extraction fix for the cheerio fallback path.

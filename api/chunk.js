@@ -1,9 +1,12 @@
-// Web Content Chunker API v3.0.0
+// Web Content Chunker API v3.1.0
 // Built by Search Influence
 // v3: Defuddle extraction, accurate token counts, sentence-aware splits,
 //     heading breadcrumbs, source metadata, multiple output formats.
+// v3.1: SSRF guards, redirect validation, size caps, input validation,
+//       native fetch with a real timeout.
 
-import fetch from 'node-fetch';
+import { lookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
 import { load } from 'cheerio';
 import { parseHTML } from 'linkedom';
 import { Defuddle } from 'defuddle/node';
@@ -22,6 +25,27 @@ const CHUNK_SIZES = {
   large: { min: 500, max: 1000, target: 750 },
 };
 
+const VALID_OPTIONS = {
+  chunkSize: ['small', 'medium', 'large'],
+  strategy: ['auto', 'heading', 'recursive', 'fixed'],
+  extract: ['auto', 'defuddle', 'cheerio'],
+  format: ['json', 'markdown', 'jsonl', 'langchain'],
+  tokenizer: ['o200k_base', 'cl100k_base', 'none'],
+};
+
+const FETCH_TIMEOUT_MS = 25000;
+const MAX_RESPONSE_BYTES = 5 * 1024 * 1024; // 5MB
+const MAX_REDIRECTS = 5;
+const MAX_OVERLAP_WORDS = 200;
+
+// Errors safe to surface to the client, with an HTTP status.
+class ChunkError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -36,10 +60,26 @@ export default async function handler(req, res) {
   if (!url) return res.status(400).json({ error: 'URL is required' });
   try { new URL(url); } catch { return res.status(400).json({ error: 'Invalid URL format' }); }
 
+  for (const [key, allowed] of Object.entries(VALID_OPTIONS)) {
+    const value = body[key];
+    if (value !== undefined && value !== null && !allowed.includes(value)) {
+      return res.status(400).json({ error: `Invalid ${key} "${value}" — expected one of: ${allowed.join(', ')}` });
+    }
+  }
+
+  let overlap = null;
+  if (body.overlap !== undefined && body.overlap !== null) {
+    overlap = Number(body.overlap);
+    if (!Number.isFinite(overlap) || overlap < 0 || overlap > MAX_OVERLAP_WORDS) {
+      return res.status(400).json({ error: `Invalid overlap — expected a number between 0 and ${MAX_OVERLAP_WORDS}` });
+    }
+    overlap = Math.round(overlap);
+  }
+
   const options = {
     mode: body.mode || 'auto',
     chunkSize: body.chunkSize || null,
-    overlap: body.overlap !== undefined && body.overlap !== null ? parseInt(body.overlap, 10) : null,
+    overlap,
     strategy: body.strategy || 'auto',
     extract: body.extract || 'auto',
     format: body.format || 'json',
@@ -50,13 +90,116 @@ export default async function handler(req, res) {
     const result = await chunkUrl(url, options);
     return deliverResponse(res, result, options);
   } catch (error) {
+    if (error instanceof ChunkError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    // Log details server-side only — don't leak internals to the client.
     console.error('Chunking error:', error.message);
     console.error('URL:', url);
-    return res.status(500).json({
-      error: 'Failed to process URL',
-      details: error.message,
-    });
+    return res.status(500).json({ error: 'Failed to process URL' });
   }
+}
+
+// --- SSRF-guarded fetch ----------------------------------------------------
+
+function isPrivateIp(ip) {
+  const v4 = ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+  if (isIP(v4) === 4) {
+    const [a, b] = v4.split('.').map(Number);
+    return a === 0 || a === 10 || a === 127
+      || (a === 169 && b === 254)              // link-local / cloud metadata
+      || (a === 172 && b >= 16 && b <= 31)
+      || (a === 192 && b === 168)
+      || (a === 100 && b >= 64 && b <= 127);   // CGNAT
+  }
+  const lower = ip.toLowerCase();
+  return lower === '::' || lower === '::1'
+    || /^f[cd]/.test(lower)                    // fc00::/7 unique-local
+    || /^fe[89ab]/.test(lower);                // fe80::/10 link-local
+}
+
+async function assertPublicHost(hostname) {
+  const bare = hostname.replace(/^\[|\]$/g, ''); // strip IPv6 brackets
+  if (bare === 'localhost' || bare.endsWith('.localhost') || bare.endsWith('.local') || bare.endsWith('.internal')) {
+    throw new ChunkError(400, 'URL points to a private or internal host');
+  }
+  if (isIP(bare)) {
+    if (isPrivateIp(bare)) throw new ChunkError(400, 'URL points to a private or internal host');
+    return;
+  }
+  let addresses;
+  try {
+    addresses = await lookup(bare, { all: true, verbatim: true });
+  } catch {
+    throw new ChunkError(400, 'Could not resolve the URL hostname');
+  }
+  if (!addresses.length || addresses.some((a) => isPrivateIp(a.address))) {
+    throw new ChunkError(400, 'URL points to a private or internal host');
+  }
+  // Note: a hostile DNS server could still rebind between this check and the
+  // fetch. Full pinning needs a custom dispatcher; this covers realistic abuse.
+}
+
+async function fetchPublicUrl(url) {
+  let current = url;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const u = new URL(current);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+      throw new ChunkError(400, 'Only http and https URLs are supported');
+    }
+    await assertPublicHost(u.hostname);
+
+    let res;
+    try {
+      res = await fetch(u, {
+        headers: { 'User-Agent': 'Web Content Chunker/3.1' },
+        redirect: 'manual',
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+    } catch (err) {
+      if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+        throw new ChunkError(504, 'The page took too long to respond');
+      }
+      throw new ChunkError(502, 'Could not fetch the URL');
+    }
+
+    if ([301, 302, 303, 307, 308].includes(res.status)) {
+      const location = res.headers.get('location');
+      await res.body?.cancel?.();
+      if (!location) throw new ChunkError(502, `Redirect without a location header (HTTP ${res.status})`);
+      current = new URL(location, u).href; // each hop re-validated at loop top
+      continue;
+    }
+
+    if (!res.ok) throw new ChunkError(502, `The page returned HTTP ${res.status}`);
+
+    const contentType = (res.headers.get('content-type') || '').split(';')[0].trim();
+    if (contentType && !/^(text\/(html|plain|xml)|application\/(xhtml\+xml|xml))$/.test(contentType)) {
+      await res.body?.cancel?.();
+      throw new ChunkError(415, `Unsupported content type: ${contentType}`);
+    }
+
+    return readBodyCapped(res);
+  }
+  throw new ChunkError(502, 'Too many redirects');
+}
+
+async function readBodyCapped(res) {
+  if (!res.body) return '';
+  const reader = res.body.getReader();
+  const chunks = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_RESPONSE_BYTES) {
+      await reader.cancel();
+      throw new ChunkError(413, 'Page is too large to process (5MB max)');
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString('utf-8');
 }
 
 function deliverResponse(res, result, options) {
@@ -79,12 +222,7 @@ function deliverResponse(res, result, options) {
 async function chunkUrl(url, options) {
   const warnings = [];
 
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Web Content Chunker/3.0' },
-    timeout: 30000,
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-  const html = await res.text();
+  const html = await fetchPublicUrl(url);
 
   const $raw = load(html);
   const source = extractSourceMetadata($raw, url);
@@ -156,8 +294,17 @@ async function selectExtractor(html, url, options, warnings) {
         },
       };
     }
+    // extract=defuddle means defuddle — fail honestly instead of silently
+    // handing back cheerio output labeled as a fallback.
+    if (options.extract === 'defuddle') {
+      throw new ChunkError(422, 'Defuddle could not extract main content from this page — try extract "auto" or "cheerio"');
+    }
     warnings.push('Defuddle returned empty or thin content; falling back to cheerio extraction.');
   } catch (err) {
+    if (err instanceof ChunkError) throw err;
+    if (options.extract === 'defuddle') {
+      throw new ChunkError(422, 'Defuddle failed on this page — try extract "auto" or "cheerio"');
+    }
     warnings.push(`Defuddle failed (${err.message}); falling back to cheerio extraction.`);
   }
 

@@ -1,6 +1,14 @@
 // Feedback API — posts user feedback to a Slack Incoming Webhook.
 // Env: SLACK_FEEDBACK_WEBHOOK_URL (required to deliver), FEEDBACK_PROJECT_NAME (optional, defaults to "getchunks")
-import fetch from 'node-fetch';
+
+// Escape Slack mrkdwn control characters so user input can't inject
+// <!channel> pings, spoofed <url|label> links, or broken formatting.
+function escapeMrkdwn(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
 
 const TYPE_EMOJI = {
   bug: ':bug:',
@@ -38,20 +46,21 @@ async function sendSlackNotification({ type, message, userEmail, pageUrl, userAg
     {
       type: 'section',
       fields: [
-        { type: 'mrkdwn', text: `*From:*\n${userEmail}` },
+        { type: 'mrkdwn', text: `*From:*\n${escapeMrkdwn(userEmail)}` },
         { type: 'mrkdwn', text: `*Type:*\n${TYPE_LABEL[type] || type}` },
       ],
     },
     {
       type: 'section',
-      text: { type: 'mrkdwn', text: `*Message:*\n${message}` },
+      text: { type: 'mrkdwn', text: `*Message:*\n${escapeMrkdwn(message)}` },
     },
   ];
 
   if (pageUrl) {
+    // Plain escaped text — Slack auto-links URLs; no <url|label> syntax to spoof.
     blocks.push({
       type: 'section',
-      text: { type: 'mrkdwn', text: `*Page:*\n<${pageUrl}|${pageUrl}>` },
+      text: { type: 'mrkdwn', text: `*Page:*\n${escapeMrkdwn(pageUrl)}` },
     });
   }
 
@@ -62,7 +71,7 @@ async function sendSlackNotification({ type, message, userEmail, pageUrl, userAg
       elements: [
         {
           type: 'mrkdwn',
-          text: `Submitted ${new Date().toISOString()}${userAgent ? ` · ${userAgent}` : ''}`,
+          text: `Submitted ${new Date().toISOString()}${userAgent ? ` · ${escapeMrkdwn(userAgent)}` : ''}`,
         },
       ],
     },
@@ -112,20 +121,21 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid feedback type.' });
     }
 
-    const userEmail = typeof email === 'string' && email.trim() ? email.trim() : 'Anonymous';
+    const userEmail = typeof email === 'string' && email.trim() ? email.trim().slice(0, 200) : 'Anonymous';
     const userAgent = req.headers['user-agent'] || undefined;
+    const safePageUrl = typeof pageUrl === 'string' && /^https?:\/\//.test(pageUrl) ? pageUrl.slice(0, 500) : undefined;
 
     const result = await sendSlackNotification({
       type,
       message: message.trim(),
       userEmail,
-      pageUrl: typeof pageUrl === 'string' && pageUrl ? pageUrl : undefined,
+      pageUrl: safePageUrl,
       userAgent,
     });
 
     return res.status(200).json({ success: true, delivered: result.delivered });
   } catch (err) {
     console.error('[feedback] handler error:', err);
-    return res.status(500).json({ error: err?.message || 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

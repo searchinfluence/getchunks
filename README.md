@@ -1,4 +1,4 @@
-# Web Content Chunker v3.0.0
+# Web Content Chunker v3.1.0
 
 A web application that extracts and structures content from web pages into clean, organized chunks for RAG, LLM pipelines, and content analysis. Zero AI/LLM dependencies — all improvements are pure code.
 
@@ -30,15 +30,6 @@ A web application that extracts and structures content from web pages into clean
    - **📖 Webpage**: Clean, article-style presentation
    - **🧩 Chunks**: Structured view showing big chunks and small chunks
    - **📋 JSON**: Raw JSON data for developers
-
-## Recent Updates (v1.2.0)
-
-- ✅ **Enhanced Chunking Algorithm**: Improved content separation between headings
-- ✅ **Three-View Interface**: Added dedicated Chunks view alongside Webpage and JSON views
-- ✅ **Search Influence Branding**: Professional header with official logo and styling
-- ✅ **Analytics Integration**: Vercel Analytics with custom event tracking
-- ✅ **Version Tracking**: Added version comments to all files for better debugging
-- ✅ **Improved Error Handling**: Better error messages and debugging capabilities
 
 ### What Gets Extracted
 - Main article content organized by headings (H1-H6)
@@ -96,11 +87,10 @@ The application generates JSON with this structure:
 
 ## Technology Stack
 
-- **Frontend**: HTML5, CSS3, Vanilla JavaScript
-- **Backend**: Node.js serverless functions (Vercel)
-- **Processing**: Cheerio for HTML parsing, node-fetch for content retrieval
+- **Frontend**: HTML5, CSS3, Vanilla JavaScript (Search Influence design system, shared with AI Website Grader and Ontologizer)
+- **Backend**: Node.js serverless functions (Vercel), native fetch
+- **Processing**: Defuddle for main-content extraction, Cheerio for HTML parsing, gpt-tokenizer for BPE token counts, sbd for sentence boundaries
 - **Deployment**: Vercel edge network for global performance
-- **Styling**: Search Influence branding and responsive design
 
 ## Local Development
 
@@ -108,7 +98,7 @@ If you want to run this locally or contribute:
 
 ```bash
 # Clone the repository
-git clone https://github.com/willscott-v2/getchunks.git
+git clone https://github.com/searchinfluence/getchunks.git
 cd getchunks
 
 # Install dependencies
@@ -170,13 +160,15 @@ We welcome contributions! Feel free to:
 
 ## Version History
 
+- **v3.1.0** (July 2026): Search Influence design system, SSRF guards, input validation, security hardening
+- **v3.0.0** (April 2026): Defuddle extraction, accurate BPE token counts, heading breadcrumbs, source metadata, multiple output formats, feedback widget
 - **v1.2.0** (July 2025): Enhanced chunking, three-view interface, analytics integration
 - **v1.1.0** (July 2025): Search Influence branding, improved UI/UX
 - **v1.0.0** (July 2025): Initial release with core extraction functionality
 
 ## License
 
-ISC License - free to use and modify
+MIT License - free to use and modify
 
 ## Credits
 

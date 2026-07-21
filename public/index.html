@@ -11,8 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <title>Web Content Chunker - Extract and Structure Web Content</title>
     <meta name="description" content="Extract and structure content from any web page into clean, organized JSON chunks. Perfect for content analysis, SEO research, and data processing.">
-    <!-- Google Tag Manager -->
-    <!-- GTM ID is injected at build time from GTM_ID environment variable -->
+    <!-- Google Tag Manager — shared Search Influence container (same ID as AI Website Grader / Ontologizer) -->
     <script>
         (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
         new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -1472,7 +1471,7 @@
                 </div>
                 <div class="faq-item">
                     <h3>Is my data secure?</h3>
-                    <p>Yes, we prioritize data security. The content extraction process happens on our secure servers, and we don't store any extracted content or URLs. All processing is done in real-time and results are only displayed in your browser session.</p>
+                    <p>Extraction happens on our servers in real time, and we don't keep the extracted content — results live only in your browser session. Like most web tools, submitted URLs do appear in our usage analytics and short-lived server logs, which we use to keep the service running.</p>
                 </div>
             </div>
         </div>
@@ -1480,7 +1479,7 @@
 
     <div class="footer">
         <div class="container">
-            <p>Built for content analysis and research • <a href="https://github.com/willscott-v2/getchunks" target="_blank">View Source on GitHub</a> • Open Source & Free to Use</p>
+            <p>Built for content analysis and research • <a href="https://github.com/searchinfluence/getchunks" target="_blank" rel="noopener noreferrer">View Source on GitHub</a> • Open Source & Free to Use</p>
         </div>
     </div>
 
@@ -1559,10 +1558,11 @@
                 });
             });
 
-            // Overlap slider handler
+            // Overlap slider handler — 0 means Auto; any other value is manual.
+            // (The old check on dataset.auto made manual mode unreachable.)
             overlapSlider.addEventListener('input', function() {
                 const value = parseInt(this.value);
-                if (value === 0 || this.dataset.auto === 'true') {
+                if (value === 0) {
                     overlapValue.textContent = 'Auto';
                     this.dataset.auto = 'true';
                 } else {
@@ -2031,9 +2031,15 @@
             }
 
             function escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
+                // Escapes quotes too — this output lands in attribute values
+                // (title="", href=""), where the textContent/innerHTML trick
+                // would leave an attribute-injection hole.
+                return String(text)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
             }
 
             // Focus on input when page loads
