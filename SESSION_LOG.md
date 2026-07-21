@@ -1,5 +1,23 @@
 # getchunks Session Log
 
+## 2026-07-21 — Sync, full code review, SI theme + hardening (v3.1)
+
+**Started:** repo was 12 commits behind origin/main (org-wide gitleaks rollout, workflow-only). Fast-forwarded; deleted merged branches `feature/v3-modernization` + `fix/ui-polish-v3`. Confirmed `feature/enhanced-chunking` is fully merged (leftover pointer, not open work).
+
+**Full code review** of api/chunk.js, api/feedback.js, public/index.html, configs. Found: SSRF/open-proxy on /api/chunk, attribute-injection XSS via scraped heading ids (escapeHtml didn't escape quotes), Slack mrkdwn injection in feedback, permanently-stuck overlap slider, dead node-fetch timeout, dishonest `extract=defuddle` fallback, README/license drift, source-mutating build script.
+
+**Two stacked PRs opened:**
+- **#5 `feature/si-design-system`** — adopted the canonical SI design system from AI Website Grader + Ontologizer (the grader's stylesheet is literally titled "GetChunks Design System" — theme came home). CSS-only, class names unchanged. Full token block, Open Sans, hero gradient, flat orange CTAs, report-green results header, local logo. Playwright QA at 1440/375px.
+- **#6 `fix/hardening-and-bugs`** (stacked on #5) — SSRF guards (scheme allowlist, DNS + private-range block incl. metadata/CGNAT/IPv6, per-hop redirect validation, 5MB cap, content-type check), escapeHtml quote fix, Slack escaping, input validation (400s not 500s), native fetch + AbortSignal.timeout, extract=defuddle 422, removed node-fetch + build script + ~1,900 lines legacy files, README/GTM cleanup. Verified locally via harness + Playwright. Both PRs pass gitleaks + GitGuardian.
+
+**Decisions:** GTM `GTM-4G43` = shared SI container (verified vs grader/ontologizer .env). Legacy files deleted (git-recoverable). Rate limiting → Vercel WAF rule (dashboard, not yet applied).
+
+**Next steps / open items:**
+- Merge #5 then #6 (order matters — #6 retargets to main after #5 lands).
+- Apply Vercel WAF rate-limit rule on /api/* in the dashboard (deferred, not code).
+- Follow-ups: fixture/snapshot tests for split/merge/overlap; nested-content extraction fix for the cheerio fallback path.
+- `feature/enhanced-chunking` still exists locally + on origin (fully merged) — safe to delete when convenient.
+
 ## 2026-04-14 — Research session: code-only improvements
 
 **Goal:** Determine whether the current `getchunks` solution (cheerio + heading-based chunking) is still a strong approach, or whether code-only improvements (no AI tokens) could make it more useful.
