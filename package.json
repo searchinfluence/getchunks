@@ -1,6 +1,6 @@
 {
   "name": "@search-influence/web-content-chunker",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Intelligent web content extraction for RAG. Defuddle-powered main-content extraction, accurate BPE token counting, heading breadcrumbs, source metadata (JSON-LD, OpenGraph, Twitter), and multiple output formats (JSON, Markdown, JSONL, LangChain). Zero AI/LLM dependencies.",
   "type": "module",
   "main": "api/chunk.js",

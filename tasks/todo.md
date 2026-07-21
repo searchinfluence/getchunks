@@ -1,189 +1,74 @@
-# getchunks v3.0 update plan
+# getchunks v3.1 — SI design system + hardening
 
-**Goal:** Modernize the extraction + metadata layers around the existing heading-based chunker, using only free/open-source dependencies. Zero paid libraries, zero LLM calls, zero embedding API calls.
+**Goal:** Adopt the Search Influence design system just launched on AI Website Grader and Ontologizer, and fix the bugs/security issues found in the 2026-07-21 full code review.
 
-**Approach:** Additive where possible. Keep the existing API signature working. Add new fields/options on top.
+**Provenance note:** The grader's stylesheet is literally titled "GetChunks Design System — AI Website Grader" and ontologizer's tokens cite the grader as the canonical source. The theme started here and matured there; this brings it home. The grader kept getchunks' class names (`.header-content`, `.form-card`, `.view-toggle`, `.results-header`…), so this is a CSS swap, not a markup rewrite.
 
-**Version bump proposal:** `v3.0.0` — the output shape gains new fields (breadcrumb paths, position metadata, content type, JSON-LD, OG) and `token_estimate` becomes an accurate count. Consumers who key off exact field names may need to update.
-
----
-
-## Questions that need user decisions before starting
-
-- [ ] **Versioning:** Ship as `v3.0.0` (breaking output shape) or `v2.1.0` (strictly additive — rename nothing, old fields stay)?
-- [ ] **Frontend scope:** Update `public/index.html` to expose new options (format selector, extraction mode), or leave UI unchanged and ship API-only improvements this round?
-- [ ] **Branch:** Work on `main` directly in a new `feature/v3-modernization` branch (feature/enhanced-chunking is already merged)?
-- [ ] **README:** Rewrite now or defer to a follow-up PR?
+**Structure:** Two branches / two PRs so review stays clean:
+1. `feature/si-design-system` — visual only, no behavior change
+2. `fix/hardening-and-bugs` — security + bug fixes, no visual change
 
 ---
 
-## Dependencies to add
+## Questions needing Will's decision before/while executing
 
-All MIT/ISC/Apache-2.0, zero cost, zero telemetry:
-
-- [ ] `defuddle` — main content extraction (successor to Readability)
-- [ ] `linkedom` — lightweight DOM for Defuddle (3MB smaller than jsdom)
-- [ ] `gpt-tokenizer` — accurate BPE token counts via subpath import
-- [ ] `sbd` — sentence boundary detection for recursive strategy
-- [ ] `turndown` (conditional) — HTML→markdown if we ship `?format=markdown`
-
-**Bundle impact estimate:** +3-4MB unzipped. Fine under Vercel Fluid Compute.
+- [ ] **GTM ID:** Committed ID is `GTM-4G43` (public/index.html:18) — 4 chars is short for a container ID. Confirm it's the real, complete ID. If yes, proposal: hardcode it and delete scripts/build.js + the vercel buildCommand entirely (GTM IDs are public; the injection step is what caused the source-mutation mess).
+- [ ] **Rate limiting:** Approve enabling a Vercel WAF rate-limit rule on `/api/*` (dashboard config, zero code)? Code-level limiting in serverless is per-instance and mostly theater.
+- [ ] **Legacy design files:** `getchunks-patterns.js`, `getchunks-styles.css`, `search-influence-*.{html,css}`, the two GUIDE.md files (~1,900 lines, unused by the app). Move to `docs/legacy/` or delete?
 
 ---
 
-## Phase 1 — Extraction & tokenization (highest leverage)
+## PR 1 — `feature/si-design-system`
 
-### Defuddle-powered extraction
-- [ ] Install `defuddle` + `linkedom`
-- [ ] Add `extract` option to API: `'auto'` (default), `'defuddle'`, `'cheerio'` (legacy)
-- [ ] When `extract=defuddle`: parse with linkedom, run Defuddle, feed cleaned HTML into cheerio for heading walk
-- [ ] When Defuddle returns empty or fails, fall back to current cheerio-only path
-- [ ] Preserve the existing nav/footer filter as a secondary defense for the cheerio path
+Source of truth: `ai-website-grader/app/globals.css` + `ontologizer-next/app/styles/tokens.css` (identical palettes).
 
-### Accurate token counting
-- [ ] Install `gpt-tokenizer`, import `o200k_base` encoding via subpath
-- [ ] Replace `estimateTokens()` with real encode().length count
-- [ ] Add optional `tokenizer` param: `'o200k_base'` (default, GPT-4o/5), `'cl100k_base'` (GPT-4/3.5), `'none'` (skip for perf)
-- [ ] Keep `words × 0.75` as fallback behind `'none'`
-- [ ] Document in response: which tokenizer was used; note that Claude counts are approximate
+### Tokens & typography
+- [ ] Add the canonical SI `:root` token block to the inline `<style>` (si-dark-navy `#012c3a`, si-navy `#014a61`, si-orange `#f07a18`, si-slate `#34495e`, hero gradient `#43566d→#3c4e63`, report-green `#24ab59`, header-accent `#f28a22`, content/border/muted grays — copy verbatim from tokens.css)
+- [ ] Add Open Sans (400/700/800) via Google Fonts `<link>` with preconnect; set `--font-stack` to match the other apps
+- [ ] Replace all hardcoded legacy colors (`#2c3e50`, `#34495e`, `#e67e22`, `#f39c12`, `#3498db`, `#27ae60` gradients) with token references
 
-### Sentence-aware recursive splits
-- [ ] Install `sbd`
-- [ ] Replace `splitSentences()` regex with `sbd.sentences()` call
-- [ ] Keep the regex as fallback if sbd throws on pathological input
+### Component restyle (match grader 1:1)
+- [ ] Body → si-dark-navy; main-section → si-slate
+- [ ] Header → 90° hero gradient, 2px header-accent bottom border, drop the `::before` overlay; h1 3rem/800; tagline header-accent
+- [ ] Form card → flat `--surface-slate` (#405466) with subtle border; drop glassmorphism blur + hover lift
+- [ ] Inputs → white/6 bg, white/16 border, orange focus ring (grader's exact focus treatment)
+- [ ] Extract button → flat si-orange, hover `--orange-dark` (#d96610), weight 800; drop gradient
+- [ ] Results header → flat report-green (#24ab59); drop gradient
+- [ ] Summary cards → repaint from blue gradient to grader surface treatment (si-medium-blue for info accents)
+- [ ] Chunk badges, blockquote accents, small-chunk index → si-orange
+- [ ] Feedback widget → `--orange-accent` now resolves to si-orange; modal bg → surface-slate
+- [ ] Features + FAQ sections → grader treatment (flat cards on si-slate, 800-weight headings)
+- [ ] Footer → si-dark-navy, orange links
+- [ ] Serve the SI logo locally in `public/` instead of hotlinking searchinfluence.com wp-content (copy asset from grader)
+- [ ] Version comments → 3.1.0
+- [ ] Visual QA at 375px / 768px / desktop; verify all three views (Webpage/Chunks/JSON) + modal
 
----
+## PR 2 — `fix/hardening-and-bugs`
 
-## Phase 2 — Chunk metadata
+### Security (ranked)
+- [ ] **SSRF guards** in api/chunk.js: allow only `http:`/`https:`; resolve hostname and reject private/reserved ranges (127/8, 10/8, 172.16/12, 192.168/16, 169.254/16, ::1, fc00::/7); cap response at ~5MB; require `text/html`-ish content-type
+- [ ] **Rate limiting** via Vercel WAF rule on `/api/*` (pending approval above)
+- [ ] **escapeHtml quote fix** (index.html:1998): escape `"` too; audit the two attribute sinks (`title=` at :1943 — scraped-page XSS vector, `href=` at :1880)
+- [ ] **Slack injection** (feedback.js): escape `&`, `<`, `>` in message/email/pageUrl before building blocks (kills `<!channel>` pings and link spoofing)
+- [ ] **Error leak** (chunk.js:57): stop returning raw `error.message`; log server-side, return generic message + safe category
+- [ ] **Input validation**: allowlist `chunkSize`/`strategy`/`tokenizer`/`format`; reject bad values with 400 instead of 500
 
-### Heading breadcrumbs
-- [ ] Track heading stack during traversal (H1 > H2 > H3 ...)
-- [ ] Add `heading_path: string[]` to each big_chunk
-- [ ] Cap at 3 levels per research (AutoMergingRetriever guidance)
+### Bugs
+- [ ] **Overlap slider stuck on Auto** (index.html:1528-1537): unreachable else branch — rework so dragging to a nonzero value exits auto mode, 0 returns to it
+- [ ] **Dead fetch timeout** (chunk.js:84): node-fetch v3 ignores `timeout:` — replace with `AbortSignal.timeout(25000)`; drop node-fetch for native fetch (engines already >=18), removing a dependency
+- [ ] **"Defuddle only" honored** (chunk.js:136): when `extract=defuddle`, fail with a clear error instead of silently falling back to cheerio
 
-### Position metadata
-- [ ] Compute `start_char`, `end_char` offsets into full-document text per chunk
-- [ ] Compute `percent_through_doc` (0.0-1.0, one decimal)
-- [ ] Add to each small_chunk alongside existing word_count/char_count/tokens
+## PR 2 (or fold into 1) — Housekeeping
+- [ ] README: license MIT (matches package.json), repo URLs → searchinfluence/getchunks, remove stale v1.2 sections, add v3 field reference
+- [ ] index.html footer GitHub link → searchinfluence/getchunks
+- [ ] FAQ "Is my data secure?" — reword: URLs appear in analytics events and server logs; don't claim zero storage
+- [ ] GTM: hardcode confirmed ID, delete scripts/build.js + vercel buildCommand (pending answer above)
+- [ ] Legacy design files → docs/legacy/ or delete (pending answer above)
 
-### Content type tagging
-- [ ] Tag each small_chunk as one of: `prose`, `list`, `code`, `table`, `quote`, `mixed`
-- [ ] Determine during cheerio traversal (already know the element type)
-
-### URL fragment generation
-- [ ] For each big_chunk, emit `fragment: string` (e.g., `#section-title`)
-- [ ] Prefer existing `id` attribute on heading; synthesize slug if absent
-
-### Source metadata block
-- [ ] Add top-level `source` object to response
-- [ ] Parse JSON-LD: `$('script[type="application/ld+json"]')` → extract `author`, `datePublished`, `headline`, `breadcrumb`
-- [ ] Parse OpenGraph: `$('meta[property^="og:"]')` → title, description, image, site_name, type
-- [ ] Parse Twitter cards: `$('meta[name^="twitter:"]')` → card, title, description, image
-- [ ] Parse basic meta: `<title>`, `<meta name="description">`, canonical URL, language
-
----
-
-## Phase 3 — Output format options
-
-- [ ] Add `format` query param / body field: `'json'` (default), `'markdown'`, `'jsonl'`, `'langchain'`
-- [ ] `markdown`: emit clean markdown with `#`/`##`/`###` breadcrumb headings per chunk (use turndown only if Defuddle's built-in markdown isn't enough)
-- [ ] `jsonl`: one chunk per line for streaming pipelines
-- [ ] `langchain`: `[{page_content, metadata}]` shape — zero new deps, it's a remap
-- [ ] Skip LlamaIndex Node shape this round (wait for user pull)
-
----
-
-## Phase 4 — Guardrails & polish
-
-- [ ] Cap default overlap at 15% of chunk size (currently 10%, keep)
-- [ ] Warn in response settings when overlap > 25% ("may cause duplicate saturation")
-- [ ] Add `warnings: []` array to response when anything noteworthy happens (fallback used, low content extracted, etc.)
-- [ ] Update token_estimate → `tokens` field name (keep `token_estimate` alias for v2 callers)
-
----
-
-## Phase 5 — Frontend updates (only if approved above)
-
-- [ ] Add format selector dropdown (JSON/Markdown/JSONL/LangChain)
-- [ ] Add extraction mode toggle (Auto/Defuddle/Cheerio) in Advanced section
-- [ ] Surface `source` metadata (title, author, published date) above the chunks view
-- [ ] Display heading breadcrumbs in Chunks view
-- [ ] Show content type tags as small badges per chunk
-- [ ] Version comment bump to 3.0.0 in all files
-
----
-
-## Phase 6 — Testing & docs
-
-- [ ] Run extraction against 10 real-world URL types: news article, blog post, docs site, SPA shell (limitation), HN thread, Reddit thread, Wikipedia, YouTube description, GitHub README, PDF-linked page
-- [ ] Confirm Defuddle fallback path actually triggers on the SPA shell case
-- [ ] Update `README.md` to reflect v3.0 reality (or queue for follow-up)
-- [ ] Update `SESSION_LOG.md` at end of session
-
----
-
-## What we are explicitly NOT doing
-
-Per the research synthesis, skip these — they looked attractive but don't earn their complexity:
-
-- TextTiling / C99 semantic segmentation (no maintained JS port, headings already mark topic boundaries)
-- Multi-tokenizer ensemble (one accurate counter is enough)
-- Language detection (franc-min 540KB bundle cost > benefit for English-first tool)
-- Flesch-Kincaid readability (vanity metric for RAG)
-- SimHash/MinHash dedup (wait for batch mode)
-- Headless rendering / JS execution (stays a documented limitation)
-- Full LlamaIndex Node relationships (complexity spike, no user pull)
-
----
+## Explicitly NOT doing this round
+- Tests/lint scaffolding (worth doing, but separate PR — fixture snapshot tests for split/merge/overlap)
+- Nested-content extraction fix for the cheerio fallback path (real but invasive; Defuddle covers the common case)
+- Headless rendering, batch mode, auth — unchanged known limitations
 
 ## Review section
-
-**Branch:** `feature/v3-modernization` off `main`. Uncommitted WIP feedback-widget work on `main` was stashed (`git stash list` → "WIP feedback widget (pre-v3)") to keep the v3 changeset clean; unstash when returning to that work.
-
-**Dependencies added (all MIT/ISC):**
-- `defuddle@^0.16.0` — main-content extraction
-- `linkedom@^0.18.12` — lightweight DOM for Defuddle on Node
-- `gpt-tokenizer@^3.4.0` — accurate BPE counting (o200k_base / cl100k_base via subpath imports)
-- `sbd@^1.0.19` — sentence boundary detection
-- (skipped `turndown` — Defuddle's built-in markdown wasn't needed; client-side conversion handles it)
-
-**Files changed:**
-- `api/chunk.js` — full rewrite (451 → ~500 lines). Pipeline is now: fetch → cheerio parse raw HTML for source metadata (JSON-LD, OG, Twitter, basic) → Defuddle extraction (fall back to cheerio if thin/empty) → heading walk with breadcrumb stack seeded by page title → split (heading/recursive/fixed) → per-chunk metadata (word_count, tokens, char range, percent_through_doc, content_type, fragment) → format conversion (json/markdown/jsonl/langchain) → warnings array
-- `public/index.html` — v1.2.0 → v3.0.0 comments, added extraction-engine + output-format selectors to Advanced Options, surfaced Source block + warnings + breadcrumb paths + content-type badges in Chunks view, added client-side format conversion for copy/download
-- `package.json` — version 2.0.0 → 3.0.0, updated description, deps auto-added
-- `README.md` — updated header to reflect v3 (full rewrite deferred per plan)
-
-**Deviations from plan:**
-- **Headings missing from Defuddle output**: Defuddle extracts page title to `result.title` and strips the H1 from the body. Fix: seed the heading stack with `source.title` as level 0 so breadcrumbs include the page title. Added consecutive-dup filter to the path so pages where H1 == title don't show duplicates.
-- **Oversize chunks in `heading` strategy**: discovered on NYT homepage — Defuddle extracted a 135KB JSON blob (embedded React/GraphQL data) as a single piece, which the heading strategy kept as one chunk. Added per-piece size cap inside heading strategy (falls through to recursiveSplit when a piece exceeds `target.max`).
-- **Pathological inputs with no sentence boundaries**: the JSON blob had no `. ! ?` either. Added `forceSplitByWords` fallback in `splitBySentences` so we never emit a chunk larger than `target.max` words.
-
-**Backward compatibility:**
-- `token_estimate` retained as alias alongside new `tokens` field on small_chunks
-- `total_tokens_estimate` retained as alias alongside new `total_tokens` on big_chunk metadata
-- All existing API fields (url, mode, chunkSize, overlap, strategy) still work; new fields (extract, format, tokenizer) are opt-in
-
-**Test results — smoke run across 11 URL scenarios:**
-| URL | Extractor | Chunks | Notes |
-|---|---|---|---|
-| example.com | cheerio-fallback (expected) | 1 | Defuddle correctly bailed on thin page |
-| Wikipedia RAG | defuddle | 12/25 | Breadcrumbs show title > section > subsection; JSON-LD Article detected; author+published pulled |
-| Wikipedia (all 4 formats) | defuddle | — | All formats return valid output; markdown 13KB, jsonl 19KB |
-| Wikipedia cheerio-only | cheerio | 1/3 | Warns no usable headings (Wikipedia nav-heavy without Defuddle cleanup) |
-| searchinfluence.com | defuddle | 5/15 | LocalBusiness JSON-LD captured, OG fully parsed |
-| SI blog index | defuddle | 11/11 | Listing-page headings chunked cleanly |
-| Hacker News | defuddle | 0/0 | HN uses table layout, no semantic headings — known limitation |
-| GitHub README | defuddle | 19/19 | Auto-detected recursive strategy due to heading density |
-| NYT homepage | defuddle | 5/58 | Size-cap fix split the JSON-blob Videos section into 4 chunks |
-
-**Known limitations documented (unchanged):**
-- No JS rendering — dynamic SPA content may be missing
-- HN-style table-only layouts return 0 chunks
-- Claude and Gemini token counts are approximate (gpt-tokenizer covers GPT-4o/5 accurately; Anthropic's own JS tokenizer is stale as of March 2024)
-
-**Not yet done (follow-up PRs):**
-- Full README rewrite with v3 field reference and API examples
-- Webpage view could also surface source metadata (currently only Chunks view does)
-- Unstash and merge feedback-widget WIP separately
-
-**Bundle impact:** +16 packages per `npm install`, ~3-4MB unzipped. Vercel Fluid Compute handles cold starts fine (typical response 200-1000ms locally).
+(to be filled in when work completes)
