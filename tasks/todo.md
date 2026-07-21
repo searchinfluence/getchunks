@@ -98,4 +98,6 @@ Housekeeping:
 - Deleted ~1,900 lines of unused root design files.
 - README: MIT, searchinfluence/getchunks URLs, stale v1.2 section removed, v3/v3.1 history added; footer link fixed; FAQ "data secure" reworded to acknowledge analytics/logs.
 
-**Deferred:** Vercel WAF rate-limit rule (apply in dashboard); fixture/snapshot tests for split/merge/overlap; nested-content extraction fix for the cheerio fallback path.
+**Rate limiting — DONE (2026-07-21, via Vercel Firewall API):** Two additive custom rules live on prj_wOIeC5... (team will-scotts-projects, Pro). `chunk-rate-limit`: path pre `/api/chunk`, 20 req/60s/IP → deny. `feedback-rate-limit`: path pre `/api/feedback`, 5 req/600s/IP → deny. firewallEnabled=true, config version 2. Managed WAF ruleset untouched. Applied via `PATCH /v1/security/firewall/config` (rules.insert) after `vercel login` refresh; the CLI has no firewall command. To tune later: edit in the dashboard Firewall tab or re-PATCH.
+
+**Deferred:** fixture/snapshot tests for split/merge/overlap; nested-content extraction fix for the cheerio fallback path.

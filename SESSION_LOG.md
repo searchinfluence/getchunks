@@ -14,7 +14,7 @@
 
 **Next steps / open items:**
 - Merge #5 then #6 (order matters — #6 retargets to main after #5 lands).
-- Apply Vercel WAF rate-limit rule on /api/* in the dashboard (deferred, not code).
+- ~~Apply Vercel WAF rate-limit rule~~ **DONE** — two custom rules live via the Firewall API (`/api/chunk` 20/60s/IP, `/api/feedback` 5/600s/IP, both deny-on-exceed, keyed by IP). Applied with `PATCH /v1/security/firewall/config` after refreshing `vercel login`; the CLI has no firewall command. Managed WAF ruleset untouched.
 - Follow-ups: fixture/snapshot tests for split/merge/overlap; nested-content extraction fix for the cheerio fallback path.
 - `feature/enhanced-chunking` still exists locally + on origin (fully merged) — safe to delete when convenient.
 
