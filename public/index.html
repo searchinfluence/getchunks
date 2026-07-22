@@ -1093,6 +1093,376 @@
             }
         }
 
+        /* ============================================================
+           Search Influence marketing shell — matches AI Website Grader
+           and Ontologizer landing layout (nav, split hero, white form
+           card, near-black navy, white sections). Ported from grader
+           globals.css .marketing-* block; form selectors adapted to
+           getchunks' existing ids/classes.
+           ============================================================ */
+        .marketing-site {
+            background: var(--si-dark-navy);
+            color: var(--content-text);
+        }
+
+        .marketing-header {
+            background: var(--si-dark-navy);
+            border-bottom: 3px solid var(--si-orange);
+        }
+
+        .marketing-nav {
+            min-height: 86px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 28px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .marketing-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
+            color: var(--white);
+            text-decoration: none;
+            font-size: 0.92rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+        }
+
+        .marketing-logo-shell {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .marketing-logo-shell img {
+            width: 46px;
+            height: auto;
+        }
+
+        .marketing-nav-links {
+            display: flex;
+            align-items: center;
+            gap: 26px;
+        }
+
+        .marketing-nav-links a {
+            color: #e8f2f5;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .marketing-nav-links a:hover {
+            color: var(--si-light-orange);
+        }
+
+        .marketing-hero {
+            display: grid;
+            grid-template-columns: minmax(0, 0.9fr) minmax(460px, 1.1fr);
+            gap: clamp(44px, 6vw, 82px);
+            align-items: center;
+            padding: clamp(54px, 7vw, 86px) 0 clamp(60px, 8vw, 94px);
+        }
+
+        .marketing-hero h1 {
+            margin: 0;
+            max-width: 680px;
+            color: var(--white);
+            font-size: clamp(2.55rem, 5.2vw, 4.4rem);
+            font-weight: 800;
+            line-height: 1.02;
+            letter-spacing: -0.045em;
+        }
+
+        .hero-description {
+            max-width: 650px;
+            margin: 24px 0 0;
+            color: #d9e5e9;
+            font-size: clamp(1.05rem, 1.5vw, 1.2rem);
+            line-height: 1.7;
+        }
+
+        .hero-benefits {
+            display: grid;
+            gap: 10px;
+            margin: 28px 0 0;
+            padding: 0;
+            list-style: none;
+            color: var(--white);
+            font-size: 0.95rem;
+        }
+
+        .hero-benefits li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .hero-benefits svg {
+            flex: 0 0 auto;
+            color: var(--si-green);
+        }
+
+        .marketing-grader-shell {
+            background: var(--white);
+            padding: clamp(22px, 3vw, 34px);
+            border: 1px solid rgba(255, 255, 255, 0.38);
+            border-radius: 8px;
+            box-shadow: 0 16px 40px rgba(0, 20, 30, 0.24);
+        }
+
+        .grader-shell-heading {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .grader-shell-heading p {
+            margin: 0;
+            color: var(--si-dark-navy);
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+        .grader-shell-heading span {
+            color: var(--muted-text);
+            font-size: 0.78rem;
+        }
+
+        .grader-privacy-note {
+            margin: 18px 0 0;
+            color: #5c707c;
+            font-size: 0.78rem;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        /* Form, restyled for the white card context */
+        .marketing-grader-shell .form-group { margin: 0; }
+        .marketing-grader-shell label {
+            color: var(--si-dark-navy);
+            font-weight: 700;
+        }
+        .marketing-grader-shell .url-input-group {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 10px;
+            margin: 0;
+        }
+        .marketing-grader-shell #url-input {
+            min-width: 0;
+            min-height: 54px;
+            background: #f7f9fa;
+            border: 1px solid #c8d5dc;
+            color: var(--content-text);
+        }
+        .marketing-grader-shell #url-input::placeholder { color: #6b7e89; }
+        .marketing-grader-shell #url-input:focus {
+            background: #fff;
+            border-color: var(--orange-accent);
+            box-shadow: 0 0 0 3px rgba(240, 122, 24, 0.16);
+        }
+        .marketing-grader-shell .extract-btn { min-height: 54px; }
+
+        .marketing-grader-shell .advanced-toggle-btn {
+            background: #eef2f4;
+            border: 1px solid #d6e0e5;
+            color: var(--secondary-content);
+        }
+        .marketing-grader-shell .advanced-toggle-btn:hover {
+            background: #e3eaee;
+            border-color: #c8d5dc;
+        }
+        .marketing-grader-shell .options-grid {
+            background: #f7f9fa;
+            border: 1px solid #e0e8ec;
+        }
+        .marketing-grader-shell .option-group label { color: var(--si-dark-navy); }
+        .marketing-grader-shell .option-group select {
+            background: #fff;
+            border: 1px solid #c8d5dc;
+            color: var(--content-text);
+        }
+        .marketing-grader-shell .option-group select:focus { border-color: var(--orange-accent); }
+        .marketing-grader-shell .option-group select option { background: #fff; color: var(--content-text); }
+        .marketing-grader-shell .option-hint { color: #5e727e; }
+        .marketing-grader-shell .slider-container input[type="range"] { background: #d6e0e5; }
+        .marketing-grader-shell .slider-value { color: var(--orange-dark); }
+
+        /* Results region — sits in the navy hero block, above the orange stripe */
+        .results-region:not(:empty) { padding-bottom: 8px; }
+        .results-region .loading,
+        .results-region .error { margin: 8px 0 24px; }
+        .results-region .results.show { margin-bottom: 24px; }
+
+        /* White marketing sections below the hero */
+        .marketing-process {
+            padding: clamp(64px, 8vw, 96px) 0;
+            background: var(--content-bg);
+        }
+
+        .section-title {
+            margin: 0;
+            color: var(--si-dark-navy);
+            font-size: clamp(2rem, 3.6vw, 3rem);
+            font-weight: 800;
+            line-height: 1.12;
+            letter-spacing: -0.035em;
+        }
+
+        .section-intro {
+            max-width: 720px;
+            margin: 18px 0 0;
+            color: var(--secondary-content);
+            font-size: 1.08rem;
+        }
+
+        .process-layout {
+            display: grid;
+            grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.28fr);
+            gap: clamp(42px, 7vw, 88px);
+            align-items: start;
+        }
+
+        .process-heading { position: sticky; top: 24px; }
+
+        .process-list { border-top: 1px solid #cbd8de; }
+
+        .process-card {
+            display: grid;
+            grid-template-columns: minmax(135px, 0.42fr) minmax(0, 1fr);
+            gap: 28px;
+            padding: 23px 0;
+            border-bottom: 1px solid #cbd8de;
+        }
+
+        .process-card h3 {
+            margin: 0;
+            color: var(--si-dark-navy);
+            font-size: 1.15rem;
+            line-height: 1.25;
+        }
+
+        .process-card p {
+            margin: 0;
+            color: var(--secondary-content);
+            font-size: 0.92rem;
+            line-height: 1.65;
+        }
+
+        .marketing-faq {
+            padding: clamp(64px, 8vw, 96px) 0;
+            background: #f3f6f7;
+        }
+
+        .faq-layout {
+            display: grid;
+            grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.28fr);
+            gap: clamp(42px, 7vw, 88px);
+            align-items: start;
+        }
+
+        .faq-heading-block { position: sticky; top: 24px; }
+
+        .faq-heading-block > p:last-child {
+            margin: 20px 0 0;
+            color: var(--secondary-content);
+        }
+
+        .faq-list { display: grid; gap: 12px; }
+
+        .marketing-faq details { border-bottom: 1px solid #cbd8de; }
+        .marketing-faq details:first-child { border-top: 1px solid #cbd8de; }
+
+        .marketing-faq summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 21px 0;
+            color: var(--si-dark-navy);
+            cursor: pointer;
+            font-weight: 800;
+            list-style: none;
+        }
+        .marketing-faq summary::-webkit-details-marker { display: none; }
+        .marketing-faq summary:hover { color: var(--si-medium-blue); }
+        .marketing-faq summary svg {
+            flex: 0 0 auto;
+            color: var(--si-orange);
+            transition: transform 0.2s ease;
+        }
+        .marketing-faq details[open] summary svg { transform: rotate(180deg); }
+        .marketing-faq details > div { padding: 0 0 22px; color: var(--secondary-content); }
+        .marketing-faq details p { margin: 0; }
+
+        .marketing-footer {
+            padding: 40px 0;
+            background: var(--si-dark-navy);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .marketing-footer-inner {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 40px;
+        }
+
+        .marketing-footer img { width: 64px; height: auto; }
+
+        .marketing-footer p {
+            max-width: 520px;
+            margin: 16px 0 0;
+            color: var(--medium-gray);
+            font-size: 0.84rem;
+        }
+
+        .marketing-footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 12px 22px;
+        }
+
+        .marketing-footer-links a {
+            color: var(--light-gray);
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+        .marketing-footer-links a:hover { color: var(--si-light-orange); }
+
+        @media (max-width: 980px) {
+            .marketing-hero { grid-template-columns: 1fr; gap: 42px; }
+            .marketing-hero-copy { max-width: 760px; }
+            .process-layout, .faq-layout { grid-template-columns: 1fr; gap: 36px; }
+            .process-heading, .faq-heading-block { position: static; }
+        }
+
+        @media (max-width: 720px) {
+            .marketing-nav { min-height: 72px; }
+            .marketing-brand > span:last-child { font-size: 0.82rem; }
+            .marketing-nav-links { gap: 16px; }
+            .marketing-nav-links a { font-size: 0.8rem; }
+            .marketing-hero { padding: 40px 0 52px; }
+            .marketing-hero h1 { font-size: clamp(2.3rem, 11vw, 3.2rem); }
+            .hero-benefits { display: none; }
+            .marketing-grader-shell { padding: 20px; }
+            .marketing-grader-shell .url-input-group { grid-template-columns: 1fr; }
+            .grader-shell-heading { flex-direction: column; align-items: flex-start; gap: 3px; }
+            .process-card { grid-template-columns: 1fr; gap: 8px; }
+            .marketing-footer-inner { flex-direction: column; align-items: flex-start; }
+            .marketing-footer-links { justify-content: flex-start; }
+        }
+
+        @media (max-width: 420px) {
+            .marketing-nav-links a:first-child { display: none; }
+        }
+
         /* Feedback widget */
         .feedback-btn {
             position: fixed;
@@ -1281,32 +1651,42 @@
         ></iframe>
     </noscript>
     <!-- End Google Tag Manager (noscript) -->
-    <div class="header">
+    <div class="marketing-site">
+      <header class="marketing-header">
         <div class="container">
-            <div class="header-content">
-                <div class="logo-section">
-                    <div class="logo-container">
-                        <a href="https://www.searchinfluence.com/" target="_blank" rel="noopener noreferrer">
-                            <img src="/search-influence-logo.png" alt="Search Influence" class="si-logo">
-                        </a>
-                    </div>
-                    <h1>Web Content Chunker</h1>
-                    <div class="tagline">Smarter Content Extraction. Better Analysis. Real Results.</div>
+            <nav class="marketing-nav" aria-label="Primary navigation">
+                <a href="/" class="marketing-brand" aria-label="Web Content Chunker home">
+                    <span class="marketing-logo-shell">
+                        <img src="/search-influence-logo-white.png" alt="Search Influence" width="2560" height="2407">
+                    </span>
+                    <span>Web Content Chunker</span>
+                </a>
+                <div class="marketing-nav-links">
+                    <a href="#how-it-works">How It Works</a>
+                    <a href="https://ai-grader.searchinfluence.com/" target="_blank" rel="noopener noreferrer">AI Website Grader</a>
+                    <a href="https://ontologizer.searchinfluence.com/" target="_blank" rel="noopener noreferrer">Ontologizer</a>
                 </div>
-                <div class="header-description">
-                    <p>Intelligent content extraction with auto-detection, configurable chunk sizes, and context-aware overlap. Perfect for RAG systems, LLM training, SEO analysis, and content research.</p>
-                    <a href="https://www.searchinfluence.com" target="_blank" rel="noopener noreferrer" style="color:var(--orange-accent);text-decoration:underline">Powered by Search Influence - AI SEO Experts</a>
-                </div>
-            </div>
-        </div>
-    </div>
+            </nav>
 
-    <div class="main-section">
-        <div class="container">
-            <div class="form-card">
-                <form id="chunker-form">
+            <div class="marketing-hero">
+                <div class="marketing-hero-copy">
+                    <h1>Chunk any web page for RAG</h1>
+                    <p class="hero-description">Extract clean, structured content from any URL — heading-aware chunks, accurate BPE token counts, and source metadata. Built for RAG pipelines, LLM context windows, and SEO research.</p>
+                    <ul class="hero-benefits" aria-label="Chunker benefits">
+                        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> No account — paste a URL and go</li>
+                        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Accurate token counts on every chunk</li>
+                        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Export JSON, Markdown, JSONL, or LangChain</li>
+                    </ul>
+                </div>
+
+                <div class="marketing-grader-shell">
+                    <div class="grader-shell-heading">
+                        <p>Extract content</p>
+                        <span>One URL at a time</span>
+                    </div>
+                    <form id="chunker-form">
                     <div class="form-group">
-                        <label for="url-input">Enter Website URL to Extract Content</label>
+                        <label for="url-input">Website URL</label>
                         <div class="url-input-group">
                             <input
                                 type="url"
@@ -1385,9 +1765,12 @@
                             </div>
                         </div>
                     </div>
-                </form>
+                    </form>
+                    <p class="grader-privacy-note">The chunker fetches and structures the URL you submit. Nothing is stored — results appear only in your browser.</p>
+                </div>
             </div>
 
+            <div class="results-region">
             <div class="loading" id="loading">
                 <div class="loading-spinner"></div>
                 <h3>Processing Your URL...</h3>
@@ -1430,58 +1813,78 @@
                     </pre>
                 </div>
             </div>
+            </div>
         </div>
-    </div>
+      </header>
 
-    <div class="features">
-        <div class="container">
-            <div class="feature">
-                <div class="feature-icon">🤖</div>
-                <h3>Auto-Detection</h3>
-                <p>Intelligently analyzes each page to determine optimal chunk size, overlap, and strategy. Works perfectly out-of-the-box without configuration, or customize with advanced options.</p>
+      <main>
+        <section class="marketing-process" id="how-it-works" aria-labelledby="process-heading">
+          <div class="container process-layout">
+            <div class="process-heading">
+              <h2 id="process-heading" class="section-title">How the chunker works</h2>
+              <p class="section-intro">Every page you submit runs through the same pipeline automatically. No configuration required — though advanced options are there when you want them.</p>
             </div>
-            <div class="feature">
-                <div class="feature-icon">🎯</div>
-                <h3>Size-Aware Chunking</h3>
-                <p>Choose from small (100-200), medium (200-500), or large (500-1000 word) chunks. Recursive splitting ensures no chunk exceeds your limits while smart merging prevents tiny fragments.</p>
+            <div class="process-list">
+              <article class="process-card">
+                <h3>Auto-detection</h3>
+                <p>Analyzes each page to pick the optimal chunk size, overlap, and splitting strategy — heading-based, recursive, or fixed — based on structure and length.</p>
+              </article>
+              <article class="process-card">
+                <h3>Size-aware chunking</h3>
+                <p>Small (100–200), medium (200–500), or large (500–1000 word) chunks. Recursive splitting keeps every chunk under your limit; smart merging prevents tiny fragments.</p>
+              </article>
+              <article class="process-card">
+                <h3>Token counts &amp; metadata</h3>
+                <p>Accurate BPE token counts per chunk, heading breadcrumbs, position offsets, and source metadata (JSON-LD, OpenGraph). Export as JSON, Markdown, JSONL, or LangChain.</p>
+              </article>
             </div>
-            <div class="feature">
-                <div class="feature-icon">🔗</div>
-                <h3>Context Overlap</h3>
-                <p>Add configurable word overlap between chunks (0-50 words) to preserve context at boundaries. Essential for RAG systems and LLM applications where context continuity matters.</p>
-            </div>
-        </div>
-    </div>
+          </div>
+        </section>
 
-    <div class="faq-section">
-        <div class="container">
-            <h2>Frequently Asked Questions</h2>
-            <div class="faq-grid">
-                <div class="faq-item">
-                    <h3>Why use Web Content Chunker?</h3>
-                    <p>Web Content Chunker is designed for SEO professionals, content analysts, and researchers who need to extract clean, structured content from web pages. It automatically removes navigation, ads, and irrelevant elements while preserving the meaningful content hierarchy, making it perfect for content analysis, competitive research, and data processing workflows.</p>
-                </div>
-                <div class="faq-item">
-                    <h3>How does the content extraction work?</h3>
-                    <p>Our intelligent system analyzes the HTML structure of web pages using multiple strategies: heading-based hierarchical extraction, recursive size-aware chunking, and fixed-size chunking. It automatically detects the best approach for each page, filters out navigation and ads, and can intelligently merge small chunks or split large ones. Advanced options let you control chunk sizes (100-1000 words), add context overlap between chunks, and choose specific chunking strategies.</p>
-                </div>
-                <div class="faq-item">
-                    <h3>What types of websites can I extract from?</h3>
-                    <p>You can extract content from any publicly accessible website, including news articles, blog posts, documentation pages, product pages, and more. The tool works best with content-heavy pages that have clear heading structures and meaningful text content.</p>
-                </div>
-                <div class="faq-item">
-                    <h3>Is my data secure?</h3>
-                    <p>Extraction happens on our servers in real time, and we don't keep the extracted content — results live only in your browser session. Like most web tools, submitted URLs do appear in our usage analytics and short-lived server logs, which we use to keep the service running.</p>
-                </div>
+        <section class="marketing-faq" aria-labelledby="faq-heading">
+          <div class="container faq-layout">
+            <div class="faq-heading-block">
+              <h2 id="faq-heading" class="section-title">Frequently asked questions</h2>
+              <p>How the chunker extracts, splits, and exports web content.</p>
             </div>
-        </div>
-    </div>
+            <div class="faq-list">
+              <details>
+                <summary><span>Who is Web Content Chunker for?</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+                <div><p>SEO professionals, content analysts, and RAG builders who need clean, structured content from web pages. It strips navigation, ads, and boilerplate while preserving the content hierarchy — ready for retrieval pipelines, LLM context, competitive research, or migration.</p></div>
+              </details>
+              <details>
+                <summary><span>How does the extraction work?</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+                <div><p>Defuddle isolates the main content (with a cheerio fallback), then the page is split by one of three strategies — heading-based, recursive size-aware, or fixed — chosen automatically for each page. Small chunks merge, oversized ones split, and every chunk gets word and BPE token counts.</p></div>
+              </details>
+              <details>
+                <summary><span>What sites can I extract from?</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+                <div><p>Any publicly accessible page — news articles, blog posts, documentation, product pages. It works best on content-heavy pages with clear heading structure. JavaScript-rendered SPAs and password-protected pages aren't supported.</p></div>
+              </details>
+              <details>
+                <summary><span>Is my data secure?</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+                <div><p>Extraction happens on our servers in real time, and we don't keep the extracted content — results live only in your browser session. Like most web tools, submitted URLs appear in our usage analytics and short-lived server logs, which we use to keep the service running.</p></div>
+              </details>
+            </div>
+          </div>
+        </section>
+      </main>
 
-    <div class="footer">
-        <div class="container">
-            <p>Built for content analysis and research • <a href="https://github.com/searchinfluence/getchunks" target="_blank" rel="noopener noreferrer">View Source on GitHub</a> • Open Source & Free to Use</p>
+      <footer class="marketing-footer">
+        <div class="container marketing-footer-inner">
+          <div>
+            <img src="/search-influence-logo-white.png" alt="Search Influence" width="2560" height="2407">
+            <p>Built by Search Influence, an SEO and digital advertising agency in New Orleans.</p>
+          </div>
+          <div class="marketing-footer-links">
+            <a href="https://ai-grader.searchinfluence.com/" target="_blank" rel="noopener noreferrer">AI Website Grader</a>
+            <a href="https://ontologizer.searchinfluence.com/" target="_blank" rel="noopener noreferrer">Ontologizer</a>
+            <a href="https://github.com/searchinfluence/getchunks" target="_blank" rel="noopener noreferrer">View Source</a>
+            <a href="https://www.searchinfluence.com/contact/" target="_blank" rel="noopener noreferrer">Contact Search Influence</a>
+          </div>
         </div>
+      </footer>
     </div>
+    <!-- /marketing-site -->
 
     <!-- Vercel Analytics v1.0.0 -->
     <script>
