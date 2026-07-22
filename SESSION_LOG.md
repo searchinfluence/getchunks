@@ -1,5 +1,17 @@
 # getchunks Session Log
 
+## 2026-07-21 (cont.) — Marketing-shell parity + deploy fix
+
+**Problem found:** After the v3.1 token swap (#5/#7), the user reported getchunks still didn't look like the grader/ontologizer. Two separate issues:
+1. **Deploy was stale** — the GitHub repo transfer (willscott-v2 → searchinfluence/getchunks) had severed Vercel's Git integration, so #5/#7 merges never deployed. User reconnected Git in the dashboard, but the "Redeploy" button rebuilt the old commit (Redeploy pins to a commit; it doesn't pull HEAD). Got current work live with `vercel --prod`.
+2. **Design was only recolored, not re-laid-out** — the token swap kept getchunks' original single-column structure. The grader/ontologizer share a marketing shell (nav bar, split hero, white form card, near-black navy, white sections) that getchunks lacked.
+
+**Fix (#8, merged):** Rebuilt public/index.html on the SI marketing shell — nav with SI monogram, split hero + white form card, orange stripe, white process section (sticky-heading two-column), grader-style FAQ accordion, marketing footer. Form/advanced-options moved into the white card and restyled for light context; all tool ids preserved. Verified 1440/375px in browser and live on both domains.
+
+**Git integration now healed:** merging #8 auto-deployed HEAD (4e53ff9) correctly — confirms the reconnect works and future merges deploy on their own. The stale-commit issue was only the manual Redeploy button.
+
+**Follow-up:** ~150 lines of dead CSS from the old layout (.header/.features/old .faq-*/.footer) remain harmless (classes gone from DOM); sweep in a later pass.
+
 ## 2026-07-21 — Sync, full code review, SI theme + hardening (v3.1)
 
 **Started:** repo was 12 commits behind origin/main (org-wide gitleaks rollout, workflow-only). Fast-forwarded; deleted merged branches `feature/v3-modernization` + `fix/ui-polish-v3`. Confirmed `feature/enhanced-chunking` is fully merged (leftover pointer, not open work).
