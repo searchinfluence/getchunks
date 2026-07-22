@@ -1,5 +1,22 @@
 # getchunks Session Log
 
+## 2026-07-21 (cont. 2) — Dead-CSS cleanup, cross-links, Ontologizer preview fix
+
+**getchunks dead-CSS cleanup (#9, merged):** Removed 235 lines of orphaned rules whose classes left the DOM in the marketing-shell rebuild (.header/.header-content/.logo-*/.tagline/.header-description/.main-section/.form-card/.features/.feature*/old .faq-*/.footer + their @media entries). Verified render pixel-identical at 1440px; `<style>` braces balanced 243/243. Auto-deployed.
+
+**Sibling-tool cross-links — all live:** getchunks already linked out to AI Website Grader + Ontologizer (nav + footer). Added the reverse:
+- **AI Website Grader** footer link to getchunks (PR #24). Note: that repo was ALSO transferred to the `searchinfluence` org — its local git remote is a stale `willscott-v2` redirect (same pattern as getchunks). PR landed on `searchinfluence/ai-website-grader#24`.
+- **Ontologizer** footer link to getchunks (PR #1, still `willscott-v2/ontologizer-next`). Confirmed both live in production footers (`getchunks.searchinfluence.com`).
+
+**Ontologizer preview builds — fixed + verified:** PR previews were failing at `/_not-found` prerender ("@supabase/ssr: URL and API key required"). Root cause: the 3 Supabase vars were **branch-scoped to `feature/ai-content-clarity`**, so only that branch's previews got them. Added `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` as **preview / all-branches** (values mirrored from production via API, never printed). Verified by redeploying the previously-failed preview → built **READY**.
+
+**Correction logged:** I initially reported Ontologizer's local `main` as "divergent unpushed WIP" and worried it would clobber the cross-links. That was WRONG — a stale-checkout misread. `origin/main..main` was empty and the merge-base = local HEAD, proving local main was a plain **ancestor, 11 commits behind** (the `a2c8dff` token/cost-tracking + GPT-5.4/Gemini-3.x commit is already in origin/main). Fast-forwarded local main to `6b6c0be`; nothing to reconcile, nothing lost.
+
+**Open items:**
+- Branch-scoped Ontologizer preview vars (`feature/ai-content-clarity`) now redundant alongside the all-branch ones — safe to delete if simplifying.
+- AI Website Grader local remote should be repointed: `git remote set-url origin https://github.com/searchinfluence/ai-website-grader.git`.
+- getchunks: still-deferred fixture/snapshot tests for split/merge/overlap; nested-content extraction fix for the cheerio fallback path.
+
 ## 2026-07-21 (cont.) — Marketing-shell parity + deploy fix
 
 **Problem found:** After the v3.1 token swap (#5/#7), the user reported getchunks still didn't look like the grader/ontologizer. Two separate issues:
